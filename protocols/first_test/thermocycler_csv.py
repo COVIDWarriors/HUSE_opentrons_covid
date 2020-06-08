@@ -9,10 +9,10 @@ metadata = {
 
 
 def run(protocol):
-    # [well_vol, lid_temp, input_csv, final_temp, open_lid,
-    #     deactivate_mod] = opentrons.get_values(  # noqa: F821
-    #         'well_vol', 'lid_temp', 'input_csv', 'final_temp', 'open_lid',
-    #         'deactivate_mod')
+    [well_vol, lid_temp, input_csv, final_temp, open_lid,
+         deactivate_mod] = opentrons.get_values(  # noqa: F821
+             'well_vol', 'lid_temp', 'input_csv', 'final_temp', 'open_lid',
+             'deactivate_mod')
 
     ex_prof = """cycle,repetitions,"steps (temperature, time in minutes)",,
     1,1,"96, 30",,
