@@ -1,6 +1,0 @@
-[{
-    "type": "str",
-    "label": "Get static ip",
-    "name": "STATIC_IP",
-    "default": "192.168.1.1"
-}]
