@@ -16,7 +16,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # cargando placas
     plate_96_1 = protocol.load_labware('biorad_96_wellplate_200ul_pcr', '1')
-    plate_96_2 = protocol.load_labware('biorad_96_wellplate_200ul_pcr', '2')
+    plate_96_2 = protocol.load_labware('usascientific_96_wellplate_2.4ml_deep', '2')
     
      
     
@@ -29,14 +29,14 @@ def run(protocol: protocol_api.ProtocolContext):
     
     # # mezclando los reactivos del modulo de temperatura
     # right.transfer(6875, plate_temp.wells('A1'), plate_temp.wells('D1'))
-    # right.transfer(1375, plate_temp.wells('A2'), plate_temp.wells('D1'))
-    # right.transfer(8.25, plate_temp.wells('A3'), plate_temp.wells('D1'))
+    # right.transfer(1375, plate_temp.wells('A2'), plate_temp.wells('D1'),mix_after=(2,15))
+    # right.transfer(8.25, plate_temp.wells('A3'), plate_temp.wells('D1'),mix_after=(2,15))
     
     # # Coger mezcla del pozillo de mezcla y dispensarlo en los 96 espacios del lab
     # right.transfer(15, plate_temp.wells('D1'), plate_96_1.wells()[:])
     
     # coger del plato2 con la multi i dispensar en el plato1
-    left.transfer(50, plate_96_2.wells()[:], plate_96_1.wells()[:])
+    left.transfer(50, plate_96_2.wells()[:], plate_96_1.wells()[:],new_tip='once')
     
     # Coger control positivo(slot4) con p20Single y mandarlo a pos 96 de slot 1
     right.transfer(100, plate_temp.wells('A4'), plate_96_1.wells('H12'))

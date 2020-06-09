@@ -24,7 +24,7 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES = 8
+NUM_SAMPLES = 1
 # NUM_SAMPLES = NUM_SAMPLES -1 #Remove last sample (PC), done manually
 
 air_gap_vol = 0
@@ -77,15 +77,13 @@ num_cols = math.ceil(NUM_SAMPLES / 8)  # Columns we are working on
 
 
 def run(ctx: protocol_api.ProtocolContext):
-    import os
-    # from opentrons.drivers.rpi_drivers import gpio
-    # gpio.set_rail_lights(False) #Turn off lights (termosensible reagents)
+    
     comment(ctx, 'Actual used columns: ' + str(num_cols))
 
     # Define the STEPS of the protocol
     STEP = 0
     STEPS = {  # Dictionary with STEP activation, description, and times
-        1: {'Execute': False, 'description': 'Make MMIX'},
+        1: {'Execute': True, 'description': 'Make MMIX'},
         2: {'Execute': True, 'description': 'Transfer MMIX'},
         3: {'Execute': True, 'description': 'Transfer elution'}
     }
@@ -94,6 +92,7 @@ def run(ctx: protocol_api.ProtocolContext):
         if 'wait_time' not in STEPS[s]:
             STEPS[s]['wait_time'] = 0
 
+    import os
     # Folder and file_path for log time
     folder_path = '/var/lib/jupyter/notebooks/'+run_id
     if not ctx.is_simulating():
@@ -175,10 +174,11 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################
     # tempdeck
     
-    temp_mod = ctx.load_module('tempdeck', '4')
-    tuberack = temp_mod.load_labware('opentrons_24_aluminumblock_generic_2ml_screwcap')
-    temp_mod.set_temperature(temperature)
-    
+    tempdeck = ctx.load_module('tempdeck', '4')
+    tuberack = tempdeck.load_labware('opentrons_24_aluminumblock_generic_2ml_screwcap')
+    #tempdeck.set_temperature(temperature)
+
+
     ##################################
     # Sample plate - comes from King fisher/ Manual / Other
     source_plate = ctx.load_labware(
@@ -189,15 +189,13 @@ def run(ctx: protocol_api.ProtocolContext):
     # Elution
     # Final result
     destination_plate = ctx.load_labware(
-        'biorad_96_wellplate_200ul_pcr', '3')
+        'biorad_96_wellplate_200ul_pcr', '1')
 
     ##################################
     # Load Tipracks
-    tips20 = [
-        ctx.load_labware('opentrons_96_tiprack_20ul', slot)
-        for slot in ['3', '7']
-    ]
-
+    tips20=ctx.load_labware('opentrons_96_tiprack_20ul', 7)
+    tips20_multi=ctx.load_labware('opentrons_96_tiprack_20ul', 3)
+    
     ################################################################################
     # Declare which reagents are in each reservoir as well as deepwell and elution plate
     # 1 row, 2 columns (first ones)
@@ -215,16 +213,14 @@ def run(ctx: protocol_api.ProtocolContext):
     pcr_wells_multi = destination_plate.rows()[0][:num_cols]
 
     # pipettes
-    m20 = ctx.load_instrument(
-        'p20_multi_gen2', mount='left', tip_racks=tips20)
+    p20 = ctx.load_instrument('p20_single_gen2', mount='right', tip_racks=[tips20])
 
-    p20 = ctx.load_instrument(
-        'p20_single_gen2', mount='right', tip_racks=tips20)
+    m20 = ctx.load_instrument('p20_multi_gen2', mount='left', tip_racks=[tips20_multi])
 
     # used tips counter
     tip_track = {
         'counts': {p20: 0, m20: 0},
-        'maxes': {p20: len(tips20) * 96, m20: len(tips20)*96}
+        'maxes': {p20: len([tips20]) * 96, m20: len([tips20_multi])*96}
     }
 
     ##########
@@ -242,7 +238,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
         for i, [source, vol] in enumerate(zip(MMIX_components_location, MMIX_make[mmix_selection])):
 
-            pick_up(p20, tip_track)
+            pick_up(ctx,p20, tip_track)
             comment(ctx, 'Add component: ' +
                     MMIX_components[i].name, add_hash=True)
 
@@ -250,7 +246,7 @@ def run(ctx: protocol_api.ProtocolContext):
             if (vol + air_gap_vol) > pipette_allowed_capacity:
                 # calculate what volume should be transferred in each step
                 vol_list = divide_volume(vol, pipette_allowed_capacity)
-                comment(ctx, vol_list)
+                
                 for vol in vol_list:
                     move_vol_multichannel(ctx, p20, reagent=MMIX_components[i], source=source, dest=MMIX.reagent_reservoir[0],
                                           # should be changed with picku_up_height calculation
@@ -355,21 +351,7 @@ def run(ctx: protocol_api.ProtocolContext):
     # Light flash end of program
 
     time.sleep(2)
-    import os
-    #os.system('mpg123 -f -8000 /etc/audio/speaker-test.mp3 &')
-
-    '''if STEPS[1]['Execute'] == True:
-        total_used_vol = np.sum(used_vol)
-        total_needed_volume = total_used_vol
-        comment(ctx,'Total Master Mix used volume is: ' + str(total_used_vol) + '\u03BCl.')
-        comment(ctx,'Needed Master Mix volume is ' +
-                    str(total_needed_volume + extra_dispensal*len(dests)) +'\u03BCl')
-        comment(ctx,'Used Master Mix volumes per run are: ' + str(used_vol) + '\u03BCl.')
-        comment(ctx,'Master Mix Volume remaining in tubes is: ' +
-                    format(np.sum(MMIX.unused)+extra_dispensal*len(dests)+MMIX.vol_well) + '\u03BCl.')
-        comment(ctx,'200 ul Used tips in total: ' + str(tip_track['counts'][p20]))
-        comment(ctx,'200 ul Used racks in total: ' + str(tip_track['counts'][p20] / 96))'''
-
+    
     if STEPS[2]['Execute'] == True:
         comment(ctx, '20 ul Used tips in total: ' +
                 str(tip_track['counts'][m20]))
@@ -378,6 +360,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
     blink(ctx)
     comment(ctx, 'Finished! \nMove plate to PCR')
+
 
 
 ##################
@@ -451,7 +434,7 @@ def distribute_custom(ctx, pipette, reagent, volume, src, dest, waste_pool, pick
 # pick up tip and if there is none left, prompt user for a new rack
 
 
-def pick_up(pip, tip_track):
+def pick_up(ctx,pip, tip_track):
     if not ctx.is_simulating():
         if tip_track['counts'][pip] == tip_track['maxes'][pip]:
             ctx.pause('Replace ' + str(pip.max_volume) + 'µl tipracks before \
