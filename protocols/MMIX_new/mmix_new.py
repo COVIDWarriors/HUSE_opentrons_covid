@@ -174,18 +174,21 @@ def run(ctx: protocol_api.ProtocolContext):
     # load labware and modules
     ############################################
     # tempdeck
-    tempdeck = ctx.load_module('tempdeck', '4')
+    
+    temp_mod = ctx.load_module('tempdeck', '4')
+    tuberack = temp_mod.load_labware('opentrons_24_aluminumblock_generic_2ml_screwcap')
     tempdeck.set_temperature(temperature)
 
     ##################################
     # 24 well rack
-    tuberack = tempdeck.load_labware(
-        'opentrons_24_aluminumblock_generic_2ml_screwcap')
+    tuberack = tempdeck.load_labware('opentrons_24_aluminumblock_generic_2ml_screwcap')
 
     ##################################
     # Sample plate - comes from King fisher/ Manual / Other
     source_plate = ctx.load_labware(
         'biorad_96_wellplate_200ul_pcr', '2')
+
+    
 
     # Elution
     # Final result
@@ -195,8 +198,8 @@ def run(ctx: protocol_api.ProtocolContext):
     ##################################
     # Load Tipracks
     tips20 = [
-        ctx.load_labware('opentrons_96_filtertiprack_20ul', slot)
-        for slot in ['5', '7']
+        ctx.load_labware('opentrons_96_tiprack_20ul', slot)
+        for slot in ['3', '7']
     ]
 
     ################################################################################
