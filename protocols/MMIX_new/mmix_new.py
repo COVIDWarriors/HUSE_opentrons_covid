@@ -85,7 +85,7 @@ def run(ctx: protocol_api.ProtocolContext):
     # Define the STEPS of the protocol
     STEP = 0
     STEPS = {  # Dictionary with STEP activation, description, and times
-        1: {'Execute': False, 'description': 'Make MMIX'},
+        1: {'Execute': True, 'description': 'Make MMIX'},
         2: {'Execute': True, 'description': 'Transfer MMIX'},
         3: {'Execute': True, 'description': 'Transfer elution'}
     }
@@ -175,13 +175,10 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################
     # tempdeck
     
-    temp_mod = ctx.load_module('tempdeck', '4')
-    tuberack = temp_mod.load_labware('opentrons_24_aluminumblock_generic_2ml_screwcap')
+    tempdeck = ctx.load_module('tempdeck', '4')
+    tuberack = tempdeck.load_labware('opentrons_24_aluminumblock_generic_2ml_screwcap')
     tempdeck.set_temperature(temperature)
 
-    ##################################
-    # 24 well rack
-    tuberack = tempdeck.load_labware('opentrons_24_aluminumblock_generic_2ml_screwcap')
 
     ##################################
     # Sample plate - comes from King fisher/ Manual / Other
@@ -193,15 +190,13 @@ def run(ctx: protocol_api.ProtocolContext):
     # Elution
     # Final result
     destination_plate = ctx.load_labware(
-        'biorad_96_wellplate_200ul_pcr', '3')
+        'biorad_96_wellplate_200ul_pcr', '1')
 
     ##################################
     # Load Tipracks
-    tips20 = [
-        ctx.load_labware('opentrons_96_tiprack_20ul', slot)
-        for slot in ['3', '7']
-    ]
-
+    tips20=ctx.load_labware('opentrons_96_tiprack_20ul', 3)
+    tips20_multi=ctx.load_labware('opentrons_96_tiprack_20ul', 7)
+    
     ################################################################################
     # Declare which reagents are in each reservoir as well as deepwell and elution plate
     # 1 row, 2 columns (first ones)
@@ -246,7 +241,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
         for i, [source, vol] in enumerate(zip(MMIX_components_location, MMIX_make[mmix_selection])):
 
-            pick_up(p20, tip_track)
+            pick_up(ctx,p20, tip_track)
             comment(ctx, 'Add component: ' +
                     MMIX_components[i].name, add_hash=True)
 
@@ -455,7 +450,7 @@ def distribute_custom(ctx, pipette, reagent, volume, src, dest, waste_pool, pick
 # pick up tip and if there is none left, prompt user for a new rack
 
 
-def pick_up(pip, tip_track):
+def pick_up(ctx,pip, tip_track):
     if not ctx.is_simulating():
         if tip_track['counts'][pip] == tip_track['maxes'][pip]:
             ctx.pause('Replace ' + str(pip.max_volume) + 'µl tipracks before \
