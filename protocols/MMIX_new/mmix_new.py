@@ -1,6 +1,7 @@
 import math
 from opentrons.types import Point
 from opentrons import protocol_api
+from opentrons import labware
 import time
 import os
 import numpy as np
@@ -35,15 +36,16 @@ run_id = '$run_id'
 
 # Tune variables
 size_transfer = 4  # Number of wells the distribute function will fill
-volume_sample = 20  # Volume of the sample
+volume_sample = 10  # Volume of the sample
 # (NUM_SAMPLES * 1.5 * volume_mmix)  # Total volume of first screwcap
 extra_dispensal = 0  # Extra volume for master mix in each distribute transfer
-diameter_screwcap = 8.25  # Diameter of the screwcap
+diameter_screwcap = 8.1  # Diameter of the screwcap
 temperature = 10  # Temperature of temp module
 volume_cone = 50  # Volume in ul that fit in the screwcap cone
 x_offset = [0, 0]
 pipette_allowed_capacity_20 = 20
 pipette_allowed_capacity_300 = 200
+
 
 
 #############################################################
@@ -56,7 +58,7 @@ mmix_selection = 1  # select the mastermix to be used
 
 # volume of mastermixes per sample and number of wells in which is distributed
 
-MMIX_recipe = {1: [6.25, 1.25, 8.25]}  # Reactive volumes for the mmix
+MMIX_recipe = {1: [8.25, 6.25, 1.25]}  # Reactive volumes for the mmix
 MMIX_vol = {1: [20, 1]}
 
 MMIX_make_location = 4  # Cell A4 in which the first tube for the MMIX will be placed
@@ -87,8 +89,8 @@ def run(ctx: protocol_api.ProtocolContext):
     # Define the STEPS of the protocol
     STEP = 0
     STEPS = {  # Dictionary with STEP activation, description, and times
-        1: {'Execute': True, 'description': 'Make MMIX'},
-        2: {'Execute': True, 'description': 'Transfer MMIX'},
+        1: {'Execute': False, 'description': 'Make MMIX'},
+        2: {'Execute': False, 'description': 'Transfer MMIX'},
         3: {'Execute': True, 'description': 'Transfer elution'}
     }
 
@@ -107,7 +109,7 @@ def run(ctx: protocol_api.ProtocolContext):
     ##################################
     # Load Tipracks20_multi
     tips20=ctx.load_labware('opentrons_96_tiprack_20ul', 3)
-    tips300=ctx.load_labware('opentrons_96_tiprack_200ul', 7)
+    tips300=ctx.load_labware('opentrons_96_filtertiprack_200ul', 7)
 
     # pipettes
     p20 = ctx.load_instrument('p20_single_gen2', mount='right', tip_racks=[tips20])
@@ -115,8 +117,8 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # used tips counter
     tip_track = {
-        'counts': {p20: 0, m20: 0},
-        'maxes': {p20: len([tips20]) * 96, m20: len([tips300])}
+        'counts': {p20: 0, p300: 0},
+        'maxes': {p20: len([tips20]) * 96, p300: len([tips300])}
     }
 
 
@@ -127,14 +129,14 @@ def run(ctx: protocol_api.ProtocolContext):
 
 
     ##################################
-    # Sample plate - comes from King fisher/ Manual / Other
+    # PCR 
+    pcr_plate = ctx.load_labware(
+        'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '1')
+
+    # Eluted from King fisher/ Manual / Other
     elution_plate = ctx.load_labware(
         'biorad_96_wellplate_200ul_pcr', '2')
- 
-    # Elution
-    pcr_plate = ctx.load_labware(
-        'biorad_96_wellplate_200ul_pcr', '1')
-
+     
     
     # Define wells interaction
     # Reagents and their characteristics
@@ -221,8 +223,7 @@ def run(ctx: protocol_api.ProtocolContext):
     # setup up sample sources and destinations
     pcr_wells = pcr_plate.wells()[:NUM_SAMPLES]
     elution_wells = elution_plate.wells()[:NUM_SAMPLES]
-
-    
+ 
 
     ##########
     ############################################################################
@@ -237,43 +238,55 @@ def run(ctx: protocol_api.ProtocolContext):
         comment(ctx, 'Selected MMIX: ' +
                 MMIX_available[mmix_selection], add_hash=True)
 
+        pick_up(ctx,p300, tip_track)    
+        drop=False
         for i, [source, vol] in enumerate(zip(MMIX_components_location, MMIX_make[mmix_selection])):
+          
 
-            pick_up(ctx,p300, tip_track)
             comment(ctx, 'Add component: ' +
                     MMIX_components[i].name, add_hash=True)
 
             # because 20ul is the maximum volume of the tip we will choose 17
-            if (vol + air_gap_vol) > pipette_allowed_capacity:
+            if (vol + air_gap_vol) > pipette_allowed_capacity_300:
                 # calculate what volume should be transferred in each step
-                vol_list = divide_volume(vol, pipette_allowed_capacity)
+                vol_list = divide_volume(vol, pipette_allowed_capacity_300)
                 
                 for vol in vol_list:
+                    if(i>0):
+                        pick_up(ctx,p300, tip_track)  
+
                     move_vol_multichannel(ctx, p300, reagent=MMIX_components[i], source=source, dest=MMIX.reagent_reservoir[0],
                                           # should be changed with picku_up_height calculation
                                           vol=vol, air_gap_vol=air_gap_vol, x_offset=x_offset, pickup_height=1,
                                           rinse=False, disp_height=-10, blow_out=True, touch_tip=False)
                     if(i>0):
                         p300.drop_tip()
-                        tip_track['counts'][p300] += 1
+                        tip_track['counts'][p300] += 1 
+                        drop=True
+                        
             else:
+                if(i>0):
+                    pick_up(ctx,p300, tip_track)
                 move_vol_multichannel(ctx, p300, reagent=MMIX_components[i], source=source, dest=MMIX.reagent_reservoir[0],
                                       # should be changed with picku_up_height calculation
                                       vol=vol, air_gap_vol=air_gap_vol, x_offset=x_offset, pickup_height=1,
                                       rinse=False, disp_height=-10, blow_out=True, touch_tip=False)
                 if(i>0):
-                        p300.drop_tip()
-                        tip_track['counts'][p300] += 1
+                    p300.drop_tip()
+                    tip_track['counts'][p300] += 1 
+                    drop=True
 
             if i+1 < len(MMIX_components):
-                if(i==0):
+                if(not drop ):
                     p300.drop_tip()
-                    tip_track['counts'][p300] += 1
+                tip_track['counts'][p300] += 1
             else:
+                pick_up(ctx,p300, tip_track)
                 comment(ctx, 'Final mix', add_hash=True)
 
                 custom_mix(p300, reagent=MMIX, location=MMIX.reagent_reservoir[0], vol=50, rounds=5,
                            blow_out=True, mix_height=2, x_offset=x_offset)
+                p300.drop_tip()
             
 
         end = datetime.now()
@@ -299,7 +312,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
             move_vol_multichannel(ctx, p20, reagent=MMIX, source=MMIX.reagent_reservoir[0],
                                   dest=dest, vol=volume_mmix, air_gap_vol=air_gap_mmix, x_offset=x_offset,
-                                  pickup_height=pickup_height, disp_height=-10, rinse=False,
+                                  pickup_height=pickup_height, disp_height=-3, rinse=False,
                                   blow_out=True, touch_tip=True)
 
             # used_vol.append(used_vol_temp)
@@ -322,18 +335,18 @@ def run(ctx: protocol_api.ProtocolContext):
         start = datetime.now()
         comment(ctx, 'pcr_wells')
         # Loop over defined wells
-        for s, d in zip(samples_multi, pcr_wells_multi):
+        for s, d in zip(elution_wells, pcr_wells):
             comment(ctx, "%s %s" % (s, d))
-            m20.pick_up_tip()
+            p20.pick_up_tip()
             # Source samples
-            move_vol_multichannel(ctx, m20, reagent=Elution, source=s, dest=d,
+            move_vol_multichannel(ctx, p20, reagent=elution_well, source=s, dest=d,
                                   vol=volume_sample, air_gap_vol=air_gap_sample, x_offset=x_offset,
-                                  pickup_height=0.5, disp_height=-10, rinse=False,
-                                  blow_out=True, touch_tip=False, post_airgap=True)
+                                  pickup_height=3, disp_height=-0, rinse=False,
+                                  blow_out=True, touch_tip=True, post_airgap=True,)
 
             # ADD Custom mix
-            m20.drop_tip()
-            tip_track['counts'][m20] += 8
+            p20.drop_tip()
+            tip_track['counts'][p20] += 8
 
         end = datetime.now()
         time_taken = (end - start)
@@ -361,11 +374,15 @@ def run(ctx: protocol_api.ProtocolContext):
     
     if STEPS[2]['Execute'] == True:
         comment(ctx, '20 ul Used tips in total: ' +
-                str(tip_track['counts'][m20]))
+                str(tip_track['counts'][p20]))
         comment(ctx, '20 ul Used racks in total: ' +
-                str(tip_track['counts'][m20] / 96))
+                str(tip_track['counts'][p20] / 96))
 
     blink(ctx)
+    comment(ctx, 'Step ' + str(STEP) + ': ' +
+                STEPS[STEP]['description'] + ' took ' + str(time_taken), add_hash=True)
+    STEPS[STEP]['Time:'] = str(time_taken)
+
     comment(ctx, 'Finished! \nMove plate to PCR')
 
 
@@ -579,6 +596,4 @@ def blink(ctx):
         # ctx._hw_manager.hardware.set_button_light(0,0,1)
         time.sleep(0.3)
         ctx._hw_manager.hardware.set_lights(rails=False)
-comment(ctx, 'Step ' + str(STEP) + ': ' +
-                STEPS[STEP]['description'] + ' took ' + str(time_taken), add_hash=True)
-        STEPS[STEP]['Time:'] = str(time_taken)
+    

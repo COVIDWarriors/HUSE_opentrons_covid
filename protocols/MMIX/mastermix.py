@@ -23,7 +23,7 @@ def run(protocol: protocol_api.ProtocolContext):
     right = protocol.load_instrument('p20_single_gen2', 'right',tip_racks=[tiprack2])
 
     # cargando placas
-    plate_96_1 = protocol.load_labware('biorad_96_wellplate_200ul_pcr', '1')
+    plate_96_1 = protocol.load_labware('usascientific_96_wellplate_2.4ml_deep', '1')
     plate_96_2 = protocol.load_labware('opentrons_96_aluminumblock_generic_pcr_strip_200ul','2')
         
     
