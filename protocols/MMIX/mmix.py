@@ -28,7 +28,7 @@ metadata = {
 ##################
 NUM_SAMPLES = 96
 air_gap_vol = 5
-air_gap_sampl
+air_gap_sample = 2
 
 # Tune variables
 volume_sample = 5  # Volume of the sample
@@ -68,15 +68,15 @@ num_cols = math.ceil(NUM_SAMPLES / 8)  # Columns we are working on
 
 def run(ctx: protocol_api.ProtocolContext):
     from opentrons.drivers.rpi_drivers import gpio
-    gpio.set_rail_lights(False) #Turn off lights (termosensible reagents)
+    #gpio.set_rail_lights(False) #Turn off lights (termosensible reagents)
     ctx.comment('Actual used columns: ' + str(num_cols))
 
     # Define the STEPS of the protocol
     STEP = 0
     STEPS = {  # Dictionary with STEP activation, description, and times
         1: {'Execute': True, 'description': 'Make MMIX'},
-        2: {'Execute': True, 'description': 'Transfer MMIX'},
-        3: {'Execute': True, 'description': 'Transfer elution'}
+        2: {'Execute': False, 'description': 'Transfer MMIX'},
+        3: {'Execute': False, 'description': 'Transfer elution'}
     }
 
     for s in STEPS:  # Create an empty wait_time
