@@ -6,6 +6,14 @@ from opentrons import protocol_api,robot,labware,instruments
 metadata = {'apiLevel': '2.2'}
 
 def run(protocol: protocol_api.ProtocolContext):
+
+    muestras = 96
+    reac1 = 6.875
+    reac2 = 1.375
+    reac3 = 8.25
+    r1 = (reac1 * muestras) + 2
+    r2 = (reac3 * muestras) + 2
+    r3 = (reac3 * muestras) + 2
     
     # Cargando tipracks de puntas en los slots definidos como segundo parámetro
     tiprack1 = protocol.load_labware('opentrons_96_tiprack_20ul', 3)
@@ -16,7 +24,9 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # cargando placas
     plate_96_1 = protocol.load_labware('biorad_96_wellplate_200ul_pcr', '1')
-    plate_96_2 = protocol.load_labware('usascientific_96_wellplate_2.4ml_deep', '2')
+
+    plate_96_2 = protocol.load_labware('opentrons_96_aluminumblock_generic_pcr_strip_200ul','2')
+    #plate_96_2 = protocol.load_labware('nest_96_wellplate_2ml_deep', '2')
     
      
     
@@ -28,15 +38,15 @@ def run(protocol: protocol_api.ProtocolContext):
     
     
     # # mezclando los reactivos del modulo de temperatura
-    # right.transfer(6875, plate_temp.wells('A1'), plate_temp.wells('D1'))
-    # right.transfer(1375, plate_temp.wells('A2'), plate_temp.wells('D1'),mix_after=(2,15))
-    # right.transfer(8.25, plate_temp.wells('A3'), plate_temp.wells('D1'),mix_after=(2,15))
+    right.transfer(r1, plate_temp.wells('A1'), plate_temp.wells('D1'))
+    right.transfer(r2, plate_temp.wells('A2'), plate_temp.wells('D1'),mix_before=(2,20))
+    right.transfer(r3, plate_temp.wells('A3'), plate_temp.wells('D1'),mix_before=(2,20))
     
     # # Coger mezcla del pozillo de mezcla y dispensarlo en los 96 espacios del lab
     # right.transfer(15, plate_temp.wells('D1'), plate_96_1.wells()[:])
     
     # coger del plato2 con la multi i dispensar en el plato1
-    left.transfer(50, plate_96_2.wells()[:], plate_96_1.wells()[:],new_tip='once')
+    #left.transfer(10, plate_96_2.wells()[:], plate_96_1.wells()[:],new_tip='once',mix_before=(2,20),mix_after=(2,10))
     
     # Coger control positivo(slot4) con p20Single y mandarlo a pos 96 de slot 1
-    right.transfer(100, plate_temp.wells('A4'), plate_96_1.wells('H12'))
+    # right.transfer(100, plate_temp.wells('A4'), plate_96_1.wells('H12'))
