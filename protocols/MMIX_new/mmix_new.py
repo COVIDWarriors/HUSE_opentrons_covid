@@ -16,8 +16,8 @@ metadata = {
     'source': 'Hospital Son Espases Palma',
     'apiLevel': '2.2',
     'description': 'Protocol for Marter mix'
-
 }
+
 '''
 'technician': '$technician',
 'date': '$date'
@@ -177,12 +177,8 @@ def run(ctx: protocol_api.ProtocolContext):
     
     temp_mod = ctx.load_module('tempdeck', '4')
     tuberack = temp_mod.load_labware('opentrons_24_aluminumblock_generic_2ml_screwcap')
-    tempdeck.set_temperature(temperature)
-
-    ##################################
-    # 24 well rack
-    tuberack = tempdeck.load_labware('opentrons_24_aluminumblock_generic_2ml_screwcap')
-
+    temp_mod.set_temperature(temperature)
+    
     ##################################
     # Sample plate - comes from King fisher/ Manual / Other
     source_plate = ctx.load_labware(
