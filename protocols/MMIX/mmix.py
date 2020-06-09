@@ -31,27 +31,22 @@ air_gap_vol = 5
 air_gap_sample = 2
 
 # Tune variables
-volume_sample = 5  # Volume of the sample
-extra_dispensal = 5  # Extra volume for master mix in each distribute transfer
-diameter_screwcap = 8.25  # Diameter of the screwcap
-temperature = 25  # Temperature of temp module
-volume_cone = 50  # Volume in ul that fit in the screwcap cone
-pipette_allowed_capacity = 180 # Volume allowed in the pipette of 200µl
+volume_sample = 10        # Volume of the sample
+extra_dispensal = 5       # Extra volume for master mix in each distribute transfer
+diameter_screwcap = 8.01  # Diameter of the screwcap
+temperature = 4           # Temperature of temp module
+volume_cone = 57           # Volume in ul that fit in the screwcap cone
+pipette_allowed_capacity = 18 # Volume allowed in the pipette of 20µl
 x_offset = [0,0]
 
 #Available master mastermixes
-MMIX_available={1: 'Seegene', 2: 'Universal', 3: 'Universal_IDT',4: 'Clinic'}
+R1_MM_TaqPath = { "vol_trans": 6.875, "vol_total": 1000,"position_block":[1,1]}
+R2_AM_TaqPath = { "vol_trans": 1.375, "vol_total": 150,"position_block":[1,2]}
+R3_Water = {"vol_trans": 8.25, "vol_total": 1000, "position_block": [1, 3]}
 
-mmix_selection = 1 # select the mastermix to be used
+MMIX_make_location = [4,1] 
 
-MMIX_vol={1: [17,1], 2: [20,1], 3: [20,1], 4: [40,2]} # volume of mastermixes per sample and number of wells in which is distributed
-MMIX_recipe={1: [5, 5, 5, 2], 2: [8, 5, 1, 2, 2, 1, 1], 3: [12, 5, 1, 1, 1], 4: [1]} # Reactive volumes for the mmix
-
-size_transfer = math.floor(pipette_allowed_capacity / MMIX_vol[mmix_selection][0]) # Number of wells the distribute function will fill
-
-MMIX_make_location = 9 # Cell C1 in which the first tube for the MMIX will be placed
-
-volume_mmix = MMIX_vol[mmix_selection][0]  # Volume of transfered master mix per well
+volume_mmix_ = 15
 
 MMIX_make = {}
 for mmix_type in MMIX_recipe.keys():
@@ -62,8 +57,8 @@ for mmix_type in MMIX_recipe.keys():
 volume_mmix_available = (NUM_SAMPLES * 1.1 * MMIX_vol[mmix_selection][0])  # Total volume of mastermix that will be prepared
 
 # Calculated variables
-area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
-h_cone = (volume_cone * 3 / area_section_screwcap)
+# area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
+# h_cone = (volume_cone * 3 / area_section_screwcap)
 num_cols = math.ceil(NUM_SAMPLES / 8)  # Columns we are working on
 
 def run(ctx: protocol_api.ProtocolContext):
@@ -88,7 +83,7 @@ def run(ctx: protocol_api.ProtocolContext):
     if not ctx.is_simulating():
         if not os.path.isdir(folder_path):
             os.mkdir(folder_path)
-        file_path = folder_path + '/Station_C_qPCR_time_log.txt'
+        file_path = folder_path + '/MMIX_time_log.txt'
 
     # Define Reagents as objects with their properties
     class Reagent:
@@ -122,27 +117,39 @@ def run(ctx: protocol_api.ProtocolContext):
                       h_cono = h_cone,
                       v_fondo = volume_cone  # V cono
                       )
-    MMIX_components = Reagent(name = 'MMIX_component',
+    R1_TaqPath = Reagent(name = MMIX_available[mmix_selection],
                       rinse = False,
                       flow_rate_aspirate = 1,
                       flow_rate_dispense = 1,
-                      reagent_reservoir_volume = 1000,
-                      num_wells = 1, #change with num samples
+                      reagent_reservoir_volume = volume_mmix_available,
+                      num_wells = MMIX_vol[mmix_selection][1], #change with num samples
                       delay = 0,
                       h_cono = h_cone,
                       v_fondo = volume_cone  # V cono
                       )
 
-    Samples = Reagent(name='Samples',
-                      rinse=False,
-                      flow_rate_aspirate = 1,
-                      flow_rate_dispense = 1,
-                      reagent_reservoir_volume=50,
-                      delay=0,
-                      num_wells=num_cols,  # num_cols comes from available columns
-                      h_cono=0,
-                      v_fondo=0
-                      )
+    
+    # MMIX_components = Reagent(name = 'MMIX_component',
+    #                   rinse = False,
+    #                   flow_rate_aspirate = 1,
+    #                   flow_rate_dispense = 1,
+    #                   reagent_reservoir_volume = 1000,
+    #                   num_wells = 1, #change with num samples
+    #                   delay = 0,
+    #                   h_cono = h_cone,
+    #                   v_fondo = volume_cone  # V cono
+    #                   )
+
+    # Samples = Reagent(name='Samples',
+    #                   rinse=False,
+    #                   flow_rate_aspirate = 1,
+    #                   flow_rate_dispense = 1,
+    #                   reagent_reservoir_volume=50,
+    #                   delay=0,
+    #                   num_wells=num_cols,  # num_cols comes from available columns
+    #                   h_cono=0,
+    #                   v_fondo=0
+    #                   )
 
 
     MMIX.vol_well = MMIX.vol_well_original
@@ -267,46 +274,31 @@ def run(ctx: protocol_api.ProtocolContext):
             col_change = False
         return height, col_change
 
-    ####################################
-    # load labware and modules
-    # 24 well rack
-    tuberack = ctx.load_labware(
-        'opentrons_24_aluminumblock_generic_2ml_screwcap', '2',
-        'Bloque Aluminio opentrons 24 screwcaps 2000 µL ')
-
     ############################################
     # tempdeck
     tempdeck = ctx.load_module('tempdeck', '4')
     tempdeck.set_temperature(temperature)
 
     ##################################
-    # qPCR plate - final plate, goes to PCR
-    qpcr_plate = tempdeck.load_labware(
-        'abi_fast_qpcr_96_alum_opentrons_100ul',
-        'chilled qPCR final plate')
-
-    ##################################
-    # Sample plate - comes from B
-    source_plate = ctx.load_labware(
-        "kingfisher_std_96_wellplate_550ul", '1',
-        'chilled KF plate with elutions (alum opentrons)')
-    samples = source_plate.wells()[:NUM_SAMPLES]
+    # 24 well rack
+    tubracks = tempdeck.load_labware(
+        'opentrons_24_aluminumblock_generic_2ml_screwcap',
+        'Bloque Aluminio opentrons 24 screwcaps 2000 µL')
 
     ##################################
     # Load Tipracks
     tips20 = [
         ctx.load_labware('opentrons_96_filtertiprack_20ul', slot)
-        for slot in ['5']
+        for slot in ['7','3']
     ]
 
-    tips200 = [
-        ctx.load_labware('opentrons_96_filtertiprack_200ul', slot)
-        for slot in ['6','10']
-    ]
 
     ################################################################################
     # Declare which reagents are in each reservoir as well as deepwell and elution plate
-    MMIX.reagent_reservoir = tuberack.rows()[0][:MMIX.num_wells] # 1 row, 2 columns (first ones)
+    MMIX.TagPath = tuberack.rows()[0][: MMIX.num_wells]  # 1 row, 2 columns (first ones)
+    MMIX.reagent_reservoir = tuberack.rows()[0][: MMIX.num_wells]  # 1 row, 2 columns (first ones)
+    MMIX.reagent_reservoir = tuberack.rows()[0][: MMIX.num_wells]  # 1 row, 2 columns (first ones)
+    
     MMIX_components.reagent_reservoir=tuberack.wells()[MMIX_make_location:(MMIX_make_location + len(MMIX_make[mmix_selection]))]
     ctx.comment('Wells in: '+ str(tuberack.rows()[0][:MMIX.num_wells]) + ' element: '+str(MMIX.reagent_reservoir[MMIX.col]))
     # setup up sample sources and destinations
@@ -319,15 +311,15 @@ def run(ctx: protocol_api.ProtocolContext):
 
 
     # pipettes
+    p20 = ctx.load_instrument(
+        'p20_single_gen2', mount='right', tip_racks=tips200)
 
     m20 = ctx.load_instrument(
-        'p20_multi_gen2', mount='right', tip_racks=tips20)
-    p300 = ctx.load_instrument(
-        'p300_single_gen2', mount='left', tip_racks=tips200)
+        'p20_multi_gen2', mount='left', tip_racks=tips20)
 
     # used tip counter and set maximum tips available
     tip_track = {
-        'counts': {p300: 0,
+        'counts': {p20: 0,
                    m20: 0}
     }
 
@@ -354,21 +346,21 @@ def run(ctx: protocol_api.ProtocolContext):
         start = datetime.now()
         # Check if among the pipettes, p300_single is installed
         for source, vol in zip(MMIX_components.reagent_reservoir, MMIX_make[mmix_selection]):
-            pick_up(p300)
+            pick_up(p20)
             if (vol + air_gap_vol) > pipette_allowed_capacity: # because 200ul is the maximum volume of the tip we will choose 180
             # calculate what volume should be transferred in each step
                 vol_list=divide_volume(vol, pipette_allowed_capacity)
                 for vol in vol_list:
-                    move_vol_multichannel(p300, reagent=MMIX_components, source=source, dest=MMIX.reagent_reservoir[0],
+                    move_vol_multichannel(p20, reagent=MMIX_components, source=source, dest=MMIX.reagent_reservoir[0],
                     vol=vol, air_gap_vol=air_gap_vol, x_offset = x_offset,pickup_height=1,
                     rinse=False, disp_height=-10,blow_out=True, touch_tip=True)
             else:
-                move_vol_multichannel(p300, reagent=MMIX_components, source=source, dest=MMIX.reagent_reservoir[0],
+                move_vol_multichannel(p20, reagent=MMIX_components, source=source, dest=MMIX.reagent_reservoir[0],
                 vol=vol, air_gap_vol=air_gap_vol, x_offset=x_offset,pickup_height=1,
                 rinse=False, disp_height=-10,blow_out=True, touch_tip=True)
 
-            p300.drop_tip()
-            tip_track['counts'][p300]+=1
+            p20.drop_tip()
+            tip_track['counts'][p20]+=1
 
         end = datetime.now()
         time_taken = (end - start)
