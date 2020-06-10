@@ -101,7 +101,7 @@ def run(ctx: protocol_api.ProtocolContext):
         'biorad_96_wellplate_200ul_pcr', '2')
 
     # Tipracks20_multi
-    tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 3)
+    tips20 = ctx.load_labware('opentrons_96_filtertiprack_20ul', 3)
     tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 7)
 
     # Mount pippets and set racks
