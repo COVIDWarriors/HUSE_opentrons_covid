@@ -27,7 +27,9 @@ metadata = {
 ##################
 NUM_SAMPLES = 8
 NUM_SAMPLES = NUM_SAMPLES - 1  # Remove last sample (PC), done manually
-steps = "all"  # [True , True]
+steps = "all"  #
+steps = [{"1": True}, {"2": True}]
+
 air_gap_vol = 10
 air_gap_mmix = 0
 air_gap_sample = 0
@@ -39,6 +41,7 @@ temperature = 10  # Temperature of temp module
 volume_sample = 10  # Volume of the sample
 extra_dispensal = 0  # Extra volume for master mix in each distribute transfer
 diameter_screwcap = 8.1  # Diameter of the screwcap
+elution_initial_volume = 50
 
 #############################################
 # Define tube type variables
@@ -84,9 +87,13 @@ def run(ctx: protocol_api.ProtocolContext):
         for index in steps:
             print(steps)
             run.setExecutionStep(steps[index])
+    else:
+        for index in steps:
+            run.setExecutionStep(True)
+
     ##################################
     # Define desk
-    tempdeck = ctx.load_module('tempdeck', '4')
+    tempdeck = ctx.load_module('tempdeck', '7')
     tuberack = tempdeck.load_labware(
         'opentrons_24_aluminumblock_generic_2ml_screwcap')
 
@@ -94,15 +101,15 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # PCR
     pcr_plate = ctx.load_labware(
-        'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '1')
+        'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '4')
 
     # Eluted from King fisher/ Manual / Other
     elution_plate = ctx.load_labware(
-        'biorad_96_wellplate_200ul_pcr', '2')
+        'biorad_96_wellplate_200ul_pcr', '5')
 
     # Tipracks20_multi
-    tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 3)
-    tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 7)
+    tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 6)
+    tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 10)
 
     # Mount pippets and set racks
     run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
@@ -169,7 +176,7 @@ def run(ctx: protocol_api.ProtocolContext):
                            rinse=False,
                            flow_rate_aspirate=1,
                            flow_rate_dispense=1,
-                           reagent_reservoir_volume=50,
+                           reagent_reservoir_volume=elution_initial_volume,
                            delay=0,
                            num_wells=num_cols,  # num_cols comes from available columns
                            h_cono=0,
@@ -258,6 +265,7 @@ def run(ctx: protocol_api.ProtocolContext):
     if (run.next_step()):
         run.set_pip("right")
         run.pick_up()
+
         for dest in pcr_wells:
             [pickup_height, col_change] = run.calc_height(
                 MMIX, area_section_screwcap, MMIX_make["volume_mmix"])
@@ -266,8 +274,6 @@ def run(ctx: protocol_api.ProtocolContext):
                                       dest=dest, vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
                                       pickup_height=pickup_height, disp_height=-3,
                                       blow_out=True, touch_tip=True)
-
-            # used_vol.append(used_vol_temp)
 
         run.drop_tip()
         run.finish_step()
@@ -282,7 +288,7 @@ def run(ctx: protocol_api.ProtocolContext):
         for s, d in zip(elution_wells, pcr_wells):
             run.comment("%s %s" % (s, d))
             run.pick_up()
-            # Source samplesgit
+            # Source samples
             run.move_vol_multichannel(reagent=elution_well, source=s, dest=d,
                                       vol=volume_sample, air_gap_vol=air_gap_sample,
                                       pickup_height=3, disp_height=0,
@@ -302,7 +308,7 @@ def run(ctx: protocol_api.ProtocolContext):
         # Loop over defined wells
         for s, d in zip(elution_wells, pcr_wells):
             run.comment("%s %s" % (s, d))
-            run.pick_up()
+            run.pick_up_tip()
             # Source samples
             run.move_vol_multichannel(reagent=elution_well, source=s, dest=d,
                                       vol=volume_sample, air_gap_vol=air_gap_sample,
@@ -499,6 +505,14 @@ class ProtocolRun:
                            x_offset=x_offset)
         # SOURCE
         s = source.bottom(pickup_height).move(Point(x=x_offset[0]))
+        if (s < dest.bottom()):
+            run.comment("Pickup height too low you will hit the bottom")
+            return False
+
+        if (s > dest.top()):
+            run.comment("Pickup too high you will not get any liquid")
+            return False
+
         # aspirate liquid
         pip.aspirate(vol, s, rate=reagent.flow_rate_aspirate)
         if air_gap_vol != 0:  # If there is air_gap_vol, switch pipette to slow speed
@@ -506,6 +520,10 @@ class ProtocolRun:
                          rate=reagent.flow_rate_aspirate)  # air gap
         # GO TO DESTINATION
         drop = dest.top(z=disp_height).move(Point(x=x_offset[1]))
+        if (drop < dest.bottom()):
+            run.comment("Dispense height too low you will hit the bottom")
+            return False
+
         pip.dispense(vol + air_gap_vol, drop,
                      rate=reagent.flow_rate_dispense)  # dispense all
         # pause for x seconds depending on reagent
@@ -595,6 +613,7 @@ class ProtocolRun:
 
         self.comment('Remaining volume ' + str(reagent.vol_well) +
                      '< needed volume ' + str(aspirate_volume) + '?')
+
         if reagent.vol_well < aspirate_volume + extra_volume:
             reagent.unused.append(reagent.vol_well)
             self.comment('Next column should be picked')
