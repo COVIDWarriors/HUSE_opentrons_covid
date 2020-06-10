@@ -25,10 +25,9 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES = 96
-
+NUM_SAMPLES = 8
 NUM_SAMPLES = NUM_SAMPLES - 1  # Remove last sample (PC), done manually
-
+steps = "all"  # [True , True]
 air_gap_vol = 10
 air_gap_mmix = 0
 air_gap_sample = 0
@@ -76,11 +75,15 @@ def run(ctx: protocol_api.ProtocolContext):
     # Init protocol run
     run = ProtocolRun(ctx)
 
-    run.addStep(execute=True, description="Make MMIX")
-    run.addStep(execute=True, description="Transfer MMIX")
-    run.addStep(execute=True, description="Make MMIX")
-    run.addStep(execute=False, description="Set up positive control")
+    run.addStep(description="Make MMIX")
+    run.addStep(description="Transfer MMIX")
+    run.addStep(description="Make MMIX")
+    run.addStep(description="Set up positive control")
 
+    if (steps != "all"):
+        for index in steps:
+            print(steps)
+            run.setExecutionStep(steps[index])
     ##################################
     # Define desk
     tempdeck = ctx.load_module('tempdeck', '4')
@@ -216,7 +219,7 @@ def run(ctx: protocol_api.ProtocolContext):
                     if(i > 0):
                         run.pick_up()
 
-                    run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX_destination,
+                    run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX_destination[0],
                                               vol=vol, air_gap_vol=air_gap_vol, pickup_height=1, disp_height=-10, blow_out=True)
 
                     # If not in first step we need to change everytime
@@ -227,7 +230,7 @@ def run(ctx: protocol_api.ProtocolContext):
             else:
                 if(i > 0):
                     run.pick_up()
-                run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX.reagent_reservoir[0],
+                run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX_destination[0],
                                           vol=vol, air_gap_vol=air_gap_vol, pickup_height=1,
                                           disp_height=-10, blow_out=True)
                 if(i > 0):
@@ -242,7 +245,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 run.pick_up()
                 run.comment('Final mix', add_hash=True)
 
-                run.custom_mix(reagent=MMIX, location=MMIX.reagent_reservoir[0], vol=50, rounds=5,
+                run.custom_mix(reagent=MMIX, location=MMIX_destination[0], vol=50, rounds=5,
                                blow_out=True, mix_height=2)
                 run.drop_tip()
 
@@ -253,13 +256,13 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################################################
     run.start_lights()
     if (run.next_step()):
-        run.set_pip("rigth")
-        run.pick_up_tip()
+        run.set_pip("right")
+        run.pick_up()
         for dest in pcr_wells:
             [pickup_height, col_change] = run.calc_height(
                 MMIX, area_section_screwcap, MMIX_make["volume_mmix"])
 
-            run.move_vol_multichannel(reagent=MMIX, source=MMIX.reagent_reservoir[0],
+            run.move_vol_multichannel(reagent=MMIX, source=MMIX_destination[0],
                                       dest=dest, vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
                                       pickup_height=pickup_height, disp_height=-3,
                                       blow_out=True, touch_tip=True)
@@ -272,14 +275,14 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################################################
     # STEP 3: TRANSFER Samples
     ############################################################################
-    if(run.next_steps()):
+    if(run.next_step()):
         run.comment('pcr_wells')
         run.set_pip("right")
         # Loop over defined wells
         for s, d in zip(elution_wells, pcr_wells):
             run.comment("%s %s" % (s, d))
-            run.pick_up_tip()
-            # Source samples
+            run.pick_up()
+            # Source samplesgit
             run.move_vol_multichannel(reagent=elution_well, source=s, dest=d,
                                       vol=volume_sample, air_gap_vol=air_gap_sample,
                                       pickup_height=3, disp_height=0,
@@ -293,13 +296,13 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################################################
     # STEP 4: Set up positive control
     ############################################################################
-    if(run.next_steps()):
+    if(run.next_step()):
         run.comment('pcr_wells')
         run.set_pip("right")
         # Loop over defined wells
         for s, d in zip(elution_wells, pcr_wells):
             run.comment("%s %s" % (s, d))
-            run.pick_up_tip()
+            run.pick_up()
             # Source samples
             run.move_vol_multichannel(reagent=elution_well, source=s, dest=d,
                                       vol=volume_sample, air_gap_vol=air_gap_sample,
@@ -358,9 +361,12 @@ class ProtocolRun:
         self.selected_pip = "right"
         self.pips = {"right": {}, "left": {}}
 
-    def addStep(self, execute, description, wait_time=0):
+    def addStep(self, description, execute=True, wait_time=0):
         self.step_list.append(
             {'Execute': execute, 'description': description, 'wait_time': wait_time})
+
+    def setExecutionStep(self, index, value):
+        self.step_list[index]["Execute"] = True
 
     def next_step(self):
         if self.step_list[self.step]['Execute'] == False:
@@ -382,7 +388,7 @@ class ProtocolRun:
         self.pips[position]["pip"] = self.ctx.load_instrument(
             type, mount=position, tip_racks=tip_racks)
         self.pips[position]["capacity"] = capacity
-        self.pips[position]["counts"] = 0
+        self.pips[position]["count"] = 0
         self.pips[position]["maxes"] = len(tip_racks)
 
     def mount_right_pip(self, type, tip_racks, capacity):
@@ -399,6 +405,9 @@ class ProtocolRun:
 
     def reset_pip_count(self):
         self.pips[self.selected_pip]["count"] = 0
+
+    def add_pip_count(self):
+        self.pips[self.selected_pip]["count"] + 1
 
     def get_pip_maxes(self):
         return self.pips[self.selected_pip]["maxes"]
@@ -453,7 +462,7 @@ class ProtocolRun:
     def drop_tip(self):
         pip = self.get_current_pip()
         pip.drop_tip()
-        pip['counts'] += 1
+        self.add_pip_count()
 
     def comment(self, comment, add_hash=False):
         hash_string = '#######################################################'
@@ -500,7 +509,7 @@ class ProtocolRun:
         pip.dispense(vol + air_gap_vol, drop,
                      rate=reagent.flow_rate_dispense)  # dispense all
         # pause for x seconds depending on reagent
-        ctx.delay(seconds=reagent.delay)
+        self.ctx.delay(seconds=reagent.delay)
         if blow_out == True:
             pip.blow_out(dest.top(z=-2))
         if post_dispense == True:
@@ -553,7 +562,7 @@ class ProtocolRun:
         return (len(dest) * volume)
 
     def custom_mix(self, reagent, location, vol, rounds, blow_out, mix_height,
-                   x_offset, source_height=3, post_airgap=False, post_airgap_vol=10,
+                   x_offset=[0, 0], source_height=3, post_airgap=False, post_airgap_vol=10,
                    post_dispense=False, post_dispense_vol=20,):
         '''
         Function for mixing a given [vol] in the same [location] a x number of [rounds].
@@ -615,11 +624,11 @@ class ProtocolRun:
         return height, col_change
 
     def start_lights(self):
-        ctx._hw_manager.hardware.set_lights(
+        self.ctx._hw_manager.hardware.set_lights(
             rails=True)  # set lights off when using MMIX
 
     def stop_lights(self):
-        ctx._hw_manager.hardware.set_lights(
+        self.ctx._hw_manager.hardware.set_lights(
             rails=False)  # set lights off when using MMIX
 
     def blink(self):
