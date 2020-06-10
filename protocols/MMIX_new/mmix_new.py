@@ -29,9 +29,11 @@ metadata = {
 NUM_SAMPLES = 8
 NUM_SAMPLES = NUM_SAMPLES - 1  # Remove last sample (PC), done manually
 
-steps = "all"  #
+# steps = "all"  #
 # steps = "all"  # [True , True]
-#steps = [True, False, False, False]
+steps = [True, True, True, True]
+
+
 
 air_gap_vol = 10
 air_gap_mmix = 0
@@ -639,7 +641,7 @@ class ProtocolRun:
             pip.dispense(post_airgap_vol, location.top(z=5))
 
     def calc_height(self, reagent, cross_section_area, aspirate_volume, min_height=0.5, extra_volume=30):
-
+        # if support_selected == pcr_support.index[1] : --> refdefine height (calculate_heigh(self))
         self.comment('Remaining volume ' + str(reagent.vol_well) +
                      '< needed volume ' + str(aspirate_volume) + '?')
 
@@ -688,7 +690,7 @@ class ProtocolRun:
             # ctx._hw_manager.hardware.set_button_light(0,0,1)
             time.sleep(0.3)
             self.stop_lights()
-
+    
     def log_steps_time(self):
         # Export the time log to a tsv file
         if not self.ctx.is_simulating():
