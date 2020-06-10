@@ -207,7 +207,7 @@ def run(ctx: protocol_api.ProtocolContext):
             # because 20ul is the maximum volume of the tip we will choose 17
             if (vol + air_gap_vol) > run.get_pip_capacity():
                 # calculate what volume should be transferred in each step
-                vol_list = run.divide_volume(vol, pipette_allowed_capacity_300)
+                vol_list = run.divide_volume(vol, run.get_pip_capacity())
                 for vol in vol_list:
                     # If not in first step we need to change everytime
                     if(i > 0):
@@ -255,7 +255,6 @@ def run(ctx: protocol_api.ProtocolContext):
     if (run.next_step()):
         run.set_pip("rigth")
         run.pick_up_tip()
-
         for dest in pcr_wells:
             [pickup_height, col_change] = run.calc_height(
                 MMIX, area_section_screwcap, volume_mmix)
