@@ -265,10 +265,10 @@ def run(ctx: protocol_api.ProtocolContext):
     if (run.next_step()):
         run.set_pip("right")
         run.pick_up()
-
+        volumen_mmix = MMIX_make["volume_available"]
         for dest in pcr_wells:
             [pickup_height, col_change] = run.calc_height(
-                MMIX, area_section_screwcap, MMIX_make["volume_mmix"])
+                MMIX, area_section_screwcap, )
 
             run.move_vol_multichannel(reagent=MMIX, source=MMIX_destination[0],
                                       dest=dest, vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
