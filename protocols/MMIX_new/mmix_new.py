@@ -27,7 +27,7 @@ metadata = {
 ##################
 NUM_SAMPLES = 96
 
-# NUM_SAMPLES = NUM_SAMPLES -1 #Remove last sample (PC), done manually
+NUM_SAMPLES = NUM_SAMPLES - 1  # Remove last sample (PC), done manually
 
 air_gap_vol = 10
 air_gap_mmix = 0
@@ -35,17 +35,15 @@ air_gap_sample = 0
 run_id = '$run_id'
 
 # Tune variables
-size_transfer = 4  # Number of wells the distribute function will fill
+select_mmix = "SonEspases1"  # Now only one recipe available
+temperature = 10  # Temperature of temp module
 volume_sample = 10  # Volume of the sample
-# (NUM_SAMPLES * 1.5 * volume_mmix)  # Total volume of first screwcap
 extra_dispensal = 0  # Extra volume for master mix in each distribute transfer
 diameter_screwcap = 8.1  # Diameter of the screwcap
-temperature = 10  # Temperature of temp module
-volume_cone = 50  # Volume in ul that fit in the screwcap cone
-x_offset = [0, 0]
 
 #############################################
-# Calculated variables
+# Define tube type variables
+volume_cone = 50  # Volume in ul that fit in the screwcap cone
 area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
 h_cone = (volume_cone * 3 / area_section_screwcap)
 num_cols = math.ceil(NUM_SAMPLES / 8)  # Columns we are working on
@@ -54,24 +52,23 @@ num_cols = math.ceil(NUM_SAMPLES / 8)  # Columns we are working on
 #############################################################
 # Available master mastermixes
 #############################################################
-MMIX_available = {1: 'SonEspases'}
-mmix_selection = 1  # select the mastermix to be used
-# volume of mastermixes per sample and number of wells in which is distributed
-MMIX_recipe = {1: [8.25, 6.25, 1.25]}  # Reactive volumes for the mmix
-MMIX_vol = {1: [20, 1]}
-MMIX_make_location = 4  # Cell A4 in which the first tube for the MMIX will be placed
+MMIX_available = {'SonEspases1':
+                  {
+                      "recipe": [8.25, 6.25, 1.25],
+                      "sources": ["A1", "A2", "A3"],
+                      "dest": "D1",
+                      "volume_mmix": 15,
 
-# Volume of transfered master mix per well
-volume_mmix = MMIX_vol[mmix_selection][0]
+                  }
+                  }
 
-MMIX_make = {}
-for mmix_type in MMIX_recipe.keys():
-    MMIX_make[mmix_type] = []
-    for needed_vol in MMIX_recipe[mmix_type]:
-        MMIX_make[mmix_type].append(needed_vol * NUM_SAMPLES * 1.1)
 
+MMIX_make = MMIX_available[select_mmix]
+MMIX_make["volumes"] = []
+for needed_vol in MMIX_make["recipe"]:
+    MMIX_make["volumes"].append(needed_vol * NUM_SAMPLES * 1.1)
 # Total volume of mastermix that will be prepared
-volume_mmix_available = (NUM_SAMPLES * 1.1 * MMIX_vol[mmix_selection][0])
+MMIX_make["volume_available"] = (NUM_SAMPLES * 1.1 * sum(MMIX_make["volumes"]))
 
 
 def run(ctx: protocol_api.ProtocolContext):
@@ -82,6 +79,7 @@ def run(ctx: protocol_api.ProtocolContext):
     run.addStep(execute=True, description="Make MMIX")
     run.addStep(execute=True, description="Transfer MMIX")
     run.addStep(execute=True, description="Make MMIX")
+    run.addStep(execute=False, description="Set up positive control")
 
     ##################################
     # Define desk
@@ -146,7 +144,7 @@ def run(ctx: protocol_api.ProtocolContext):
                    rinse=False,
                    flow_rate_aspirate=1,
                    flow_rate_dispense=1,
-                   reagent_reservoir_volume=volume_mmix_available,
+                   reagent_reservoir_volume=MMIX_make["volume_available"],
                    num_wells=1,  # change with num samples
                    delay=0,
                    h_cono=h_cone,
@@ -180,9 +178,11 @@ def run(ctx: protocol_api.ProtocolContext):
     ################################################################################
     # Declare which reagents are in each reservoir as well as deepwell and elution plate
     # 1 row, 2 columns (first ones)
-    MMIX.reagent_reservoir = tuberack.rows()[0][:MMIX.num_wells]
-    MMIX_components_location = tuberack.wells()[MMIX_make_location:(
-        MMIX_make_location + len(MMIX_make[mmix_selection]))]
+    MMIX_destination = tuberack.wells(MMIX_make["dest"])
+    MMIX_components_location = []
+    for source in MMIX_make["sources"]:
+        MMIX_components_location.append(
+            tuberack.wells(source))
 
     # setup up sample sources and destinations
     pcr_wells = pcr_plate.wells()[:NUM_SAMPLES]
@@ -195,14 +195,17 @@ def run(ctx: protocol_api.ProtocolContext):
         # Check if among the pipettes, p20_single is installed
         used_vol = []
         run.comment('Selected MMIX: ' +
-                    MMIX_available[mmix_selection], add_hash=True)
+                    select_mmix, add_hash=True)
+
         run.set_pip("left")
         run.pick_up()
         drop = False
-        for i, [source, vol] in enumerate(zip(MMIX_components_location, MMIX_make[mmix_selection])):
-
+        for i, [source] in enumerate(MMIX_components_location):
             run.comment('Add component: ' +
                         MMIX_components[i].name, add_hash=True)
+
+            # Get volumen calculated
+            vol = MMIX_make["volumes"][i]
 
             # because 20ul is the maximum volume of the tip we will choose 17
             if (vol + air_gap_vol) > run.get_pip_capacity():
@@ -213,10 +216,8 @@ def run(ctx: protocol_api.ProtocolContext):
                     if(i > 0):
                         run.pick_up()
 
-                    run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX.reagent_reservoir[0],
-                                              # should be changed with picku_up_height calculation
-                                              vol=vol, air_gap_vol=air_gap_vol, x_offset=x_offset, pickup_height=1,
-                                              rinse=False, disp_height=-10, blow_out=True, touch_tip=False)
+                    run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX_destination,
+                                              vol=vol, air_gap_vol=air_gap_vol, pickup_height=1, disp_height=-10, blow_out=True)
 
                     # If not in first step we need to change everytime
                     if(i > 0):
@@ -227,9 +228,8 @@ def run(ctx: protocol_api.ProtocolContext):
                 if(i > 0):
                     run.pick_up()
                 run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX.reagent_reservoir[0],
-                                          # should be changed with picku_up_height calculation
-                                          vol=vol, air_gap_vol=air_gap_vol, x_offset=x_offset, pickup_height=1,
-                                          rinse=False, disp_height=-10, blow_out=True, touch_tip=False)
+                                          vol=vol, air_gap_vol=air_gap_vol, pickup_height=1,
+                                          disp_height=-10, blow_out=True)
                 if(i > 0):
                     run.drop_tip()
                     drop = True
@@ -243,7 +243,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 run.comment('Final mix', add_hash=True)
 
                 run.custom_mix(reagent=MMIX, location=MMIX.reagent_reservoir[0], vol=50, rounds=5,
-                               blow_out=True, mix_height=2, x_offset=x_offset)
+                               blow_out=True, mix_height=2)
                 run.drop_tip()
 
         run.finish_step()
@@ -257,11 +257,11 @@ def run(ctx: protocol_api.ProtocolContext):
         run.pick_up_tip()
         for dest in pcr_wells:
             [pickup_height, col_change] = run.calc_height(
-                MMIX, area_section_screwcap, volume_mmix)
+                MMIX, area_section_screwcap, MMIX_make["volume_mmix"])
 
             run.move_vol_multichannel(reagent=MMIX, source=MMIX.reagent_reservoir[0],
-                                      dest=dest, vol=volume_mmix, air_gap_vol=air_gap_mmix, x_offset=x_offset,
-                                      pickup_height=pickup_height, disp_height=-3, rinse=False,
+                                      dest=dest, vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
+                                      pickup_height=pickup_height, disp_height=-3,
                                       blow_out=True, touch_tip=True)
 
             # used_vol.append(used_vol_temp)
@@ -281,8 +281,8 @@ def run(ctx: protocol_api.ProtocolContext):
             run.pick_up_tip()
             # Source samples
             run.move_vol_multichannel(reagent=elution_well, source=s, dest=d,
-                                      vol=volume_sample, air_gap_vol=air_gap_sample, x_offset=x_offset,
-                                      pickup_height=3, disp_height=-0, rinse=False,
+                                      vol=volume_sample, air_gap_vol=air_gap_sample,
+                                      pickup_height=3, disp_height=0,
                                       blow_out=True, touch_tip=True, post_airgap=True,)
 
             # ADD Custom mix
@@ -290,11 +290,26 @@ def run(ctx: protocol_api.ProtocolContext):
 
         run.finish_step()
 
-    if STEPS[2]['Execute'] == True:
-        comment(ctx, '20 ul Used tips in total: ' +
-                str(tip_track['counts'][p20]))
-        comment(ctx, '20 ul Used racks in total: ' +
-                str(tip_track['counts'][p20] / 96))
+    ############################################################################
+    # STEP 4: Set up positive control
+    ############################################################################
+    if(run.next_steps()):
+        run.comment('pcr_wells')
+        run.set_pip("right")
+        # Loop over defined wells
+        for s, d in zip(elution_wells, pcr_wells):
+            run.comment("%s %s" % (s, d))
+            run.pick_up_tip()
+            # Source samples
+            run.move_vol_multichannel(reagent=elution_well, source=s, dest=d,
+                                      vol=volume_sample, air_gap_vol=air_gap_sample,
+                                      pickup_height=3, disp_height=0,
+                                      blow_out=True, touch_tip=True, post_airgap=True,)
+
+            # ADD Custom mix
+            run.drop_tip()
+
+        run.finish_step()
 
     ############################################################################
     # Light flash end of program
@@ -357,25 +372,24 @@ class ProtocolRun:
     def finish_step(self):
         end = datetime.now()
         time_taken = (end - self.start)
-        self.comment('Step ' + str(STEP) + ': ' +
+        self.comment('Step ' + str(self.step) + ': ' +
                      self.step_list[self.step]['description'] + ' took ' + str(time_taken), add_hash=True)
 
         self.step_list[self.step]['Time'] = str(time_taken)
         self.step += 1
 
+    def mount_pip(self, position, type, tip_racks, capacity):
+        self.pips[position]["pip"] = self.ctx.load_instrument(
+            type, mount=position, tip_racks=tip_racks)
+        self.pips[position]["capacity"] = capacity
+        self.pips[position]["counts"] = 0
+        self.pips[position]["maxes"] = len(tip_racks)
+
     def mount_right_pip(self, type, tip_racks, capacity):
-        self.pips["right"]["pip"] = self.ctx.load_instrument(
-            type, mount='right', tip_racks=tip_racks)
-        self.pips["right"]["capacity"] = capacity
-        self.pips["right"]["counts"] = 0
-        self.pips["right"]["maxes"] = len(tip_racks)
+        self.mount_pip("right", type, tip_racks, capacity)
 
     def mount_left_pip(self, type, tip_racks, capacity):
-        self.pips["left"]["pip"] = self.ctx.load_instrument(
-            type, mount='left', tip_racks=tip_racks)
-        self.pips["right"]["capacity"] = capacity
-        self.pips["left"]["counts"] = 0
-        self.pips["left"]["maxes"] = len(tip_racks)
+        self.mount_pip("left", type, tip_racks, capacity)
 
     def get_current_pip(self):
         return self.pips[self.selected_pip]["pip"]
@@ -384,21 +398,20 @@ class ProtocolRun:
         return self.pips[self.selected_pip]["count"]
 
     def reset_pip_count(self):
-        self.pips[self.selected_pippet]["count"] = 0
+        self.pips[self.selected_pip]["count"] = 0
 
     def get_pip_maxes(self):
         return self.pips[self.selected_pip]["maxes"]
 
     def get_pip_capacity(self):
-        print(self.selected_pip)
         return self.pips[self.selected_pip]["capacity"]
 
     def set_pip(self, position):
-        self.selected_pippet = position
+        self.selected_pip = position
 
-    def custom_mix(self, reagent, location, vol, rounds, blow_out, mix_height,
-                   x_offset, source_height=3, post_airgap=False, post_airgap_vol=10,
-                   post_dispense=False, post_dispense_vol=20,):
+    def custom_mix(self, reagent, location, vol, rounds, mix_height, blow_out=False,
+                   source_height=3, post_airgap=False, post_airgap_vol=10,
+                   post_dispense=False, post_dispense_vol=20, x_offset=[0, 0]):
         '''
         Function for mixing a given [vol] in the same [location] a x number of [rounds].
         blow_out: Blow out optional [True,False]
@@ -457,8 +470,9 @@ class ProtocolRun:
             if (add_hash):
                 print(hash_string)
 
-    def move_vol_multichannel(self, reagent, source, dest, vol, air_gap_vol, x_offset,
-                              pickup_height, rinse, disp_height, blow_out, touch_tip,
+    def move_vol_multichannel(self, reagent, source, dest, vol, air_gap_vol,
+                              pickup_height, disp_height, x_offset=[0, 0],
+                              rinse=False,  blow_out=False, touch_tip=False,
                               post_dispense=False, post_dispense_vol=20,
                               post_airgap=False, post_airgap_vol=10):
         '''
@@ -469,7 +483,6 @@ class ProtocolRun:
         blow_out, touch_tip: if True they will be done after dispensing
         '''
         pip = self.get_current_pip()
-
         # Rinse before aspirating
         if rinse == True:
             run.custom_mix(reagent, location=source, vol=vol,
