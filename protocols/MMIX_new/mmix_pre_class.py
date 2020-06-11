@@ -27,7 +27,9 @@ metadata = {
 ##################
 NUM_SAMPLES = 8
 
-# NUM_SAMPLES = NUM_SAMPLES -1 #Remove last sample (PC), done manually
+#Negative control
+if(NUM_SAMPLES>94):
+    NUM_SAMPLES = 95 #Remove last sample (PC), done manually
 
 air_gap_vol = 10
 air_gap_mmix = 0
@@ -73,7 +75,7 @@ for mmix_type in MMIX_recipe.keys():
         MMIX_make[mmix_type].append(needed_vol * NUM_SAMPLES * 1.1)
 
 # Total volume of mastermix that will be prepared
-volume_mmix_available = (NUM_SAMPLES * 1.1 * MMIX_vol[mmix_selection][0])
+volume_mmix_available = (NUM_SAMPLES * 1.1 * MMIXa_vol[mmix_selection][0])
 
 #############################################
 # Calculated variables
