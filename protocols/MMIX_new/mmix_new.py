@@ -27,7 +27,7 @@ metadata = {
 # Defined variables
 ##################
 NUM_SAMPLES = 8
-steps = [4] # Steps you want to execute
+steps = [3] # Steps you want to execute
 
 
 air_gap_vol = 10
@@ -240,7 +240,7 @@ def run(ctx: protocol_api.ProtocolContext):
                         run.pick_up()
 
                     run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX_destination[0],
-                                              vol=vol, air_gap_vol=air_gap_vol, pickup_height=0, disp_height=0, 
+                                              vol=vol, air_gap_vol=air_gap_vol, pickup_height=0, disp_height=-10, 
                                               blow_out=True)
 
                     # If not in first step we need to change everytime
@@ -252,7 +252,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 if(i > 0):
                     run.pick_up()
                 run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX_destination[0],
-                                          vol=vol, air_gap_vol=air_gap_vol, pickup_height=1,
+                                          vol=vol, air_gap_vol=air_gap_vol, pickup_height=-10,
                                           disp_height=-10, blow_out=True)
                 if(i > 0):
                     run.drop_tip()
@@ -267,7 +267,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 run.comment('Final mix', add_hash=True)
 
                 run.custom_mix(reagent=MMIX, location=MMIX_destination[0], vol=50, rounds=5,
-                               blow_out=False, mix_height=2)
+                               blow_out=True, mix_height=2)
                 run.drop_tip()
 
         run.finish_step()
@@ -289,6 +289,20 @@ def run(ctx: protocol_api.ProtocolContext):
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
                                       # change
+            # mmix to positive and negativo control
+        #    -> Positive
+        run.move_vol_multichannel(reagent=positive_control, source=tuberack.wells('D6')[0],
+                                  dest=pcr_plate.wells('H12')[0],
+                                  vol=volume_elution, air_gap_vol=air_gap_sample,
+                                  pickup_height=3, disp_height=-10,
+                                  blow_out=True, touch_tip=True, post_airgap=True,)
+
+        #    -> Negative
+        run.move_vol_multichannel(reagent=positive_control, source=tuberack.wells('D6')[0],
+                                  dest=pcr_plate.wells('G12')[0],
+                                  vol=volume_elution, air_gap_vol=air_gap_sample,
+                                  pickup_height=3, disp_height=-10,
+                                  blow_out=True, touch_tip=True, post_airgap=True,)
 
         run.drop_tip()
         run.finish_step()
@@ -309,6 +323,8 @@ def run(ctx: protocol_api.ProtocolContext):
                                       vol=volume_elution, air_gap_vol=air_gap_sample,
                                       pickup_height=3, disp_height=-10,
                                       blow_out=False, touch_tip=True, post_airgap=True,)
+            run.custom_mix(reagent=elution_well, location=d, vol=8, rounds=3,
+                               blow_out=False, mix_height=2)
 
             # ADD Custom mix
             run.drop_tip()
@@ -323,29 +339,14 @@ def run(ctx: protocol_api.ProtocolContext):
         run.set_pip("right")
         run.pick_up()
 
-        # mmix to positive and negativo control
-        #    -> Positive
-        run.move_vol_multichannel(reagent=positive_control, source=tuberack.wells('D6')[0],
-                                  dest=pcr_plate.wells('H12')[0],
-                                  vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=0,
-                                  blow_out=True, touch_tip=True, post_airgap=True,)
-
-        #    -> Negative
-        run.move_vol_multichannel(reagent=positive_control, source=tuberack.wells('D6')[0],
-                                  dest=pcr_plate.wells('G12')[0],
-                                  vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=0,
-                                  blow_out=True, touch_tip=True, post_airgap=True,)
-        
-        run.change_tip()
-
         # Negative control
         run.move_vol_multichannel(reagent=positive_control, source=elution_plate.wells('G12')[0],
                                   dest=pcr_plate.wells('G12')[0],
                                   vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=0,
+                                  pickup_height=3, disp_height=-10,
                                   blow_out=True, touch_tip=True, post_airgap=True)
+        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('G12')[0], vol=8, rounds=3,
+                               blow_out=False, mix_height=2)
         
         run.change_tip()
         
@@ -354,8 +355,10 @@ def run(ctx: protocol_api.ProtocolContext):
         run.move_vol_multichannel(reagent=positive_control, source=tuberack.wells('A6')[0],
                                   dest=pcr_plate.wells('H12')[0],
                                   vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=0,
-                                  blow_out=True, touch_tip=True, post_airgap=True,)
+                                  pickup_height=3, disp_height=-10,
+                                  blow_out=True, touch_tip=True, post_airgap=True)
+        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=3,
+                               blow_out=False, mix_height=2)
 
         run.drop_tip()
         run.finish_step()
