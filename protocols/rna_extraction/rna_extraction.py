@@ -80,9 +80,10 @@ def run(ctx: protocol_api.ProtocolContext):
     wb_pool = ctx.load_labware(
         'nest_12_reservoir_15mL', 4)
 
-    # Magnetic module plus NEST_Deep_well_reservoire
-    mag_module=ctx.load_labware('magnetic module', 7)
-    mag_wells=magmodule.load_labware(moving_type)
+    # # Magnetic module plus NEST_Deep_well_reservoire
+    # mag_module=ctx.load_module('magnetic module', 7)
+    # mag_module.disengage()
+    # mag_wells=mag_module.load_labware(moving_type)
 
     # Ethanol Pool
     etoh_pool=ctx.load_labware(
@@ -90,7 +91,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Temperature module plus NEST_Deep_well_reservoire
     tempdeck=ctx.load_module('tempdeck', '10')
-    tuberack=tempdeck.load_labware(biorad_96_wellplate_200ul_pcr)
+    tuberack=tempdeck.load_labware(moving_type)
     # tempdeck.set_temperature(temperature)
 
     # Mount pippets and set racks
@@ -157,10 +158,10 @@ def run(ctx: protocol_api.ProtocolContext):
 
         for dest in aw_wells:
             [pickup_height, col_change] = run.calc_height(
-                MMIX, area_section_screwcap, volumen_r1_total)
+                reactivo_1, area_section_screwcap, volumen_r1_total)
 
-            run.move_vol_multichannel(reagent=MMIX, source=tuberack.wells("A6")[0],
-                                      dest=dest, vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
+            run.move_vol_multichannel(reagent=reactivo_1, source=tuberack.wells("A6")[0],
+                                      dest=dest, vol=volumen_r1, air_gap_vol=air_gap_mmix,
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
         
@@ -222,12 +223,12 @@ class ProtocolRun:
     def init_steps(self, steps):
         if(len(steps) > 0):
             for index in steps:
-                if(index <= len(run.step_list)):
+                if(index <= len(self.step_list)):
                     self.setExecutionStep(index-1, True)
                 else:
                     print("Step index out of range")
         else:
-            for index, step in enumerate(len(run.step_list)):
+            for index, step in enumerate(self.step_list):
                 self.setExecutionStep(index, True)
 
     def setExecutionStep(self, index, value):
@@ -253,7 +254,7 @@ class ProtocolRun:
         self.step_list[self.step]['Time']=str(time_taken)
         self.step += 1
 
-    def mount_pip(self, position, type, tip_racks, capacity., multi = False):
+    def mount_pip(self, position, type, tip_racks, capacity, multi = False):
         self.pips[position]["pip"]=self.ctx.load_instrument(
             type, mount = position, tip_racks = tip_racks)
         self.pips[position]["capacity"]=capacity
