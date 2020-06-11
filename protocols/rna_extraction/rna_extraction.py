@@ -89,27 +89,50 @@ def run(ctx: protocol_api.ProtocolContext):
         
     ##################################
     # Define desk
-    # tempdeck = ctx.load_module('tempdeck', '10')
-    # tuberack = tempdeck.load_labware(
-    #     'opentrons_24_aluminumblock_generic_2ml_screwcap')
-
-    # # tempdeck.set_temperature(temperature)
-
+  
     # # PCR
     # pcr_plate = ctx.load_labware(
     #     'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '11')
 
-    # # Eluted from King fisher/ Manual / Other
-    # elution_plate = ctx.load_labware(
-    #     'biorad_96_wellplate_200ul_pcr', '8')
+    # NEST_Deep_well_plate
+    # = ctx.load_labware(
+         'nest_96_wellplate_2ml_deep', 2)
+     )
+
+    # Magnetic Beads Pool
+    magbeads_pool = ctx.load_labware(
+        'nest_12_reservoir_15ml', 3)
+
+    # Wash Buffer Pool
+    wb_pool = ctx.load_labware(
+        'nest_12_reservoir_15mL', 4)
 
     # Tipracks20_multi
-    tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 9)
-    tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 7)
+    tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 11)
+    tips300_1 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 5)
+    tips300_2 = ctx.load_labware('opentrons_96_filtertiprack_200uL', 6)
+    tips300_3 = ctx.load_labware)'opentrons_96_filtertiprack_200uL', 9)
+
+    # Magnetic module plus NEST_Deep_well_reservoire
+    magmodule = ctx.load_labware('magnetic module', 7)
+    magwells = magmodule.load_labware(
+        'nest_96_wellplate_2ml_deep')
+
+    # Ethanol Pool
+    etoh_pool = ctx.load_labware(
+        'nest_12_reservoir_15ml', 8)
+
+    # Temperature module plus NEST_Deep_well_reservoire
+    tempdeck = ctx.load_module('tempdeck', '10')
+    tuberack = tempdeck.load_labware(
+        'nest_96_wellplate_2ml_deep')
+
+    # tempdeck.set_temperature(temperature)
+
 
     # Mount pippets and set racks
     run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
-    run.mount_left_pip('p300_multi_gen2', tip_racks=[tips300], capacity=300,multi=True)
+    run.mount_left_pip('p300_multi_gen2', tip_racks=[tips300_1, tips300_2, tips300_3], capacity=300,multi=True)
 
     # Define wells interaction
     # Reagents and their characteristics
