@@ -288,6 +288,7 @@ def run(ctx: protocol_api.ProtocolContext):
                                       dest=dest, vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=False, touch_tip=True)
+                                      # change
 
         run.drop_tip()
         run.finish_step()
