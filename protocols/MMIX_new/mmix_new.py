@@ -713,7 +713,7 @@ class ProtocolRun:
 
     def start_lights(self):
         self.ctx._hw_manager.hardware.set_lights(
-            rails=True)  # set lights off when using MMIX
+            rails=True)  # set lights off when using ººººººº
 
     def stop_lights(self):
         self.ctx._hw_manager.hardware.set_lights(
