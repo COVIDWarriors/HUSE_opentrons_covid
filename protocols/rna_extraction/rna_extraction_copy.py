@@ -28,15 +28,10 @@ metadata = {
 ##################
 NUM_SAMPLES = 8
 
-<<<<<<< HEAD
-steps = "all"  #
-#steps = [1] # Steps you want to execute
-=======
 # steps = "all"  #
 # steps = "all"  # [True , True]
 # steps = [True, True, True, True]
 steps = [1]  # Steps you want to execute
->>>>>>> be01861e13eafff527297084643d1392fe874e11
 
 
 air_gap_vol = 10
@@ -45,6 +40,7 @@ air_gap_sample = 0
 run_id = '$run_id'
 
 # Tune variables
+select_mmix = "SonEspases1"  # Now only one recipe available
 temperature = 10  # Temperature of temp module
 volume_elution = 10  # Volume of the sample
 extra_dispensal = 0  # Extra volume for master mix in each distribute transfer
@@ -54,6 +50,27 @@ volume_cone = 57  # Volume in ul that fit in the screwcap cone
 area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
 h_cone = (volume_cone * 3 / area_section_screwcap)
 num_cols = math.ceil(NUM_SAMPLES/8)
+
+#############################################################
+# Available master mastermixes
+#############################################################
+MMIX_available = {'SonEspases1':
+                  {
+                      "recipe": [8.25, 6.25, 1.25],
+                      "sources": ["D3", "C3", "B3"],
+                      "dest": "D6",
+                      "volume_mmix": 15,
+
+                  }
+                  }
+
+
+MMIX_make = MMIX_available[select_mmix]
+MMIX_make["volumes"] = []
+for needed_vol in MMIX_make["recipe"]:
+    MMIX_make["volumes"].append(needed_vol * NUM_SAMPLES * 1.1)
+# Total volume of mastermix that will be prepared
+MMIX_make["volume_available"] = sum(MMIX_make["volumes"])
 
 
 def run(ctx: protocol_api.ProtocolContext):
@@ -131,27 +148,97 @@ def run(ctx: protocol_api.ProtocolContext):
     #                      v_fondo=volume_cone  # V cono
     #                      )
 
+    # taq_path = Reagent(name='R1_MM_TaqPath',
+    #                    rinse=False,
+    #                    flow_rate_aspirate=1,
+    #                    flow_rate_dispense=1,
+    #                    reagent_reservoir_volume=1000,
+    #                    num_wells=1,  # change with num samples
+    #                    delay=0,
+    #                    h_cono=h_cone,
+    #                    v_fondo=volume_cone  # V cono
+    #                    )
+
+    # covid_assay = Reagent(name='R2_AM_TaqPath_Covid19_assay',
+    #                       rinse=False,
+    #                       flow_rate_aspirate=1,
+    #                       flow_rate_dispense=1,
+    #                       reagent_reservoir_volume=150,
+    #                       num_wells=1,  # change with num samples
+    #                       delay=0,
+    #                       h_cono=h_cone,
+    #                       v_fondo=volume_cone  # V cono
+    #                       )
+    # positive_control = Reagent(name='Positive control',
+    #                       rinse=False,
+    #                       flow_rate_aspirate=1,
+    #                       flow_rate_dispense=1,
+    #                       reagent_reservoir_volume=50,
+    #                       num_wells=1,  # change with num samples
+    #                       delay=0,
+    #                       h_cono=h_cone,
+    #                       v_fondo=volume_cone  # V cono
+    #                       )
+
+
+    # MMIX = Reagent(name='Master Mix',
+    #                rinse=False,
+    #                flow_rate_aspirate=1,
+    #                flow_rate_dispense=1,
+    #                reagent_reservoir_volume=MMIX_make["volume_available"],
+    #                num_wells=1,  # change with num samples
+    #                delay=0,
+    #                h_cono=h_cone,
+    #                v_fondo=volume_cone  # V cono
+    #                )
+
+    # pcr_well = Reagent(name='Samples',
+    #                    rinse=False,
+    #                    flow_rate_aspirate=1,
+    #                    flow_rate_dispense=1,
+    #                    reagent_reservoir_volume=0,
+    #                    delay=0,
+    #                    num_wells=num_cols,  # num_cols comes from available columns
+    #                    h_cono=0,
+    #                    v_fondo=0
+    #                    )
+
+    # elution_well = Reagent(name='Elution',
+    #                        rinse=False,
+    #                        flow_rate_aspirate=1,
+    #                        flow_rate_dispense=1,
+    #                        reagent_reservoir_volume=elution_initial_volume,
+    #                        delay=0,
+    #                        num_wells=num_cols,  # num_cols comes from available columns
+    #                        h_cono=0,
+    #                        v_fondo=0
+    #                        )
+
+    # MMIX_components = [mmix_water, taq_path, covid_assay]
+
+    ################################################################################
+    # Declare which reagents are in each reservoir as well as deepwell and elution plate
+    # 1 row, 2 columns (first ones)
+    MMIX_destination=tuberack.wells(MMIX_make["dest"])
+    MMIX_components_location=[]
+    for source in MMIX_make["sources"]:
+        MMIX_components_location.append(
+            tuberack.wells(source))
+
     # setup up sample sources and destinations
-    aw_wells=pcr_plate.wells()[: NUM_SAMPLES]
-    #elution_wells=elution_plate.wells()[: NUM_SAMPLES]
+    pcr_wells=pcr_plate.wells()[: NUM_SAMPLES]
+    elution_wells=elution_plate.wells()[: NUM_SAMPLES]
 
     ############################################################################
-    # STEP 1: Transfer A6 - To AW_PLATE
+    # STEP 1: Make Master MIX
     ############################################################################
     if (run.next_step()):
-        
+        run.comment('first step MMIX: ' +
+                    select_mmix, add_hash = True)
+
         run.set_pip("left")
 
         run.finish_step()
-        
-        run.pick_up()
-        run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX_destination[0],
-                                    vol=vol, air_gap_vol=air_gap_vol, pickup_height=0, disp_height=-10, 
-                                    blow_out=True)
-
-        # If not in first step we need to change everytime
-        run.drop_tip()
-                    
 
     ############################################################################
     # STEP 2: Transfer Master MIX
