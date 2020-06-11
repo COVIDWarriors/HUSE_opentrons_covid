@@ -28,10 +28,8 @@ metadata = {
 ##################
 NUM_SAMPLES = 8
 
-# steps = "all"  #
-# steps = "all"  # [True , True]
-#steps = [True, True, True, True]
-steps = [1] # Steps you want to execute
+steps = "all"  #
+#steps = [1] # Steps you want to execute
 
 
 air_gap_vol = 10
@@ -40,7 +38,6 @@ air_gap_sample = 0
 run_id = '$run_id'
 
 # Tune variables
-select_mmix = "SonEspases1"  # Now only one recipe available
 temperature = 10  # Temperature of temp module
 volume_elution = 10  # Volume of the sample
 extra_dispensal = 0  # Extra volume for master mix in each distribute transfer
@@ -50,27 +47,6 @@ volume_cone = 57  # Volume in ul that fit in the screwcap cone
 area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
 h_cone = (volume_cone * 3 / area_section_screwcap)
 num_cols = math.ceil(NUM_SAMPLES/8)
-
-#############################################################
-# Available master mastermixes
-#############################################################
-MMIX_available = {'SonEspases1':
-                  {
-                      "recipe": [8.25, 6.25, 1.25],
-                      "sources": ["D3", "C3", "B3"],
-                      "dest": "D6",
-                      "volume_mmix": 15,
-
-                  }
-                  }
-
-
-MMIX_make = MMIX_available[select_mmix]
-MMIX_make["volumes"] = []
-for needed_vol in MMIX_make["recipe"]:
-    MMIX_make["volumes"].append(needed_vol * NUM_SAMPLES * 1.1)
-# Total volume of mastermix that will be prepared
-MMIX_make["volume_available"] = sum(MMIX_make["volumes"])
 
 
 def run(ctx: protocol_api.ProtocolContext):
@@ -85,54 +61,30 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # execute avaliaible steps
     run.init_steps(steps)
-    
-        
+            
     ##################################
     # Define desk
-  
+    # tempdeck = ctx.load_module('tempdeck', '10')
+    # tuberack = tempdeck.load_labware(
+    #     'opentrons_24_aluminumblock_generic_2ml_screwcap')
+
+    # # tempdeck.set_temperature(temperature)
+
     # # PCR
     # pcr_plate = ctx.load_labware(
     #     'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '11')
 
-    # NEST_Deep_well_plate
-    # = ctx.load_labware(
-         'nest_96_wellplate_2ml_deep', 2)
-     )
-
-    # Magnetic Beads Pool
-    magbeads_pool = ctx.load_labware(
-        'nest_12_reservoir_15ml', 3)
-
-    # Wash Buffer Pool
-    wb_pool = ctx.load_labware(
-        'nest_12_reservoir_15mL', 4)
+    # # Eluted from King fisher/ Manual / Other
+    # elution_plate = ctx.load_labware(
+    #     'biorad_96_wellplate_200ul_pcr', '8')
 
     # Tipracks20_multi
-    tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 11)
-    tips300_1 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 5)
-    tips300_2 = ctx.load_labware('opentrons_96_filtertiprack_200uL', 6)
-    tips300_3 = ctx.load_labware)'opentrons_96_filtertiprack_200uL', 9)
-
-    # Magnetic module plus NEST_Deep_well_reservoire
-    magmodule = ctx.load_labware('magnetic module', 7)
-    magwells = magmodule.load_labware(
-        'nest_96_wellplate_2ml_deep')
-
-    # Ethanol Pool
-    etoh_pool = ctx.load_labware(
-        'nest_12_reservoir_15ml', 8)
-
-    # Temperature module plus NEST_Deep_well_reservoire
-    tempdeck = ctx.load_module('tempdeck', '10')
-    tuberack = tempdeck.load_labware(
-        'nest_96_wellplate_2ml_deep')
-
-    # tempdeck.set_temperature(temperature)
-
+    tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 9)
+    tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 7)
 
     # Mount pippets and set racks
     run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
-    run.mount_left_pip('p300_multi_gen2', tip_racks=[tips300_1, tips300_2, tips300_3], capacity=300,multi=True)
+    run.mount_left_pip('p300_multi_gen2', tip_racks=[tips300], capacity=300,multi=True)
 
     # Define wells interaction
     # Reagents and their characteristics
@@ -234,7 +186,7 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################################################
     if (run.next_step()):
         run.comment('first step MMIX: ' +
-                    select_mmix, add_hash=True)
+                    select_mmix, add_hash=Trugite)
 
         run.set_pip("left")
         
