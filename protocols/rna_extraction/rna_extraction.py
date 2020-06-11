@@ -13,7 +13,7 @@ import csv
 
 # metadata
 metadata = {
-    'protocolName': 'Per Version 2',
+    'protocolName': 'RNA Extraction Version 2',
     'author': 'Matias Bonet Fullana & Antoni Morla. based on: Malen Aguirregabiria,Aitor Gastaminza & José Luis Villanueva (jlvillanueva@clinic.cat)',
     'source': 'Hospital Son Espases Palma',
     'apiLevel': '2.2',
@@ -84,32 +84,24 @@ def run(ctx: protocol_api.ProtocolContext):
     run.addStep(description="Set up positive control")
 
     # execute avaliaible steps
-    if(len(steps) > 0):
-        for index in steps:
-            if(index <= len(run.step_list)):
-                run.setExecutionStep(index-1,True)
-            else:
-                print("Step index out of range")
-    else:
-        for index, step in enumerate(len(run.step_list)):
-            run.setExecutionStep(index,True)
-
+    run.init_steps(steps)
+    
         
     ##################################
     # Define desk
-    tempdeck = ctx.load_module('tempdeck', '10')
-    tuberack = tempdeck.load_labware(
-        'opentrons_24_aluminumblock_generic_2ml_screwcap')
+    # tempdeck = ctx.load_module('tempdeck', '10')
+    # tuberack = tempdeck.load_labware(
+    #     'opentrons_24_aluminumblock_generic_2ml_screwcap')
 
-    # tempdeck.set_temperature(temperature)
+    # # tempdeck.set_temperature(temperature)
 
-    # PCR
-    pcr_plate = ctx.load_labware(
-        'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '11')
+    # # PCR
+    # pcr_plate = ctx.load_labware(
+    #     'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '11')
 
-    # Eluted from King fisher/ Manual / Other
-    elution_plate = ctx.load_labware(
-        'biorad_96_wellplate_200ul_pcr', '8')
+    # # Eluted from King fisher/ Manual / Other
+    # elution_plate = ctx.load_labware(
+    #     'biorad_96_wellplate_200ul_pcr', '8')
 
     # Tipracks20_multi
     tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 9)
@@ -117,89 +109,89 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Mount pippets and set racks
     run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
-    run.mount_left_pip('p300_single_gen2', tip_racks=[tips300], capacity=300)
+    run.mount_left_pip('p300_multi_gen2', tip_racks=[tips300], capacity=300,multi=True)
 
     # Define wells interaction
     # Reagents and their characteristics
 
-    mmix_water = Reagent(name='R3_Water',
-                         rinse=False,
-                         flow_rate_aspirate=1,
-                         flow_rate_dispense=1,
-                         reagent_reservoir_volume=1000,
-                         num_wells=1,  # change with num samples
-                         delay=0,
-                         h_cono=h_cone,
-                         v_fondo=volume_cone  # V cono
-                         )
+    # mmix_water = Reagent(name='R3_Water',
+    #                      rinse=False,
+    #                      flow_rate_aspirate=1,
+    #                      flow_rate_dispense=1,
+    #                      reagent_reservoir_volume=1000,
+    #                      num_wells=1,  # change with num samples
+    #                      delay=0,
+    #                      h_cono=h_cone,
+    #                      v_fondo=volume_cone  # V cono
+    #                      )
 
-    taq_path = Reagent(name='R1_MM_TaqPath',
-                       rinse=False,
-                       flow_rate_aspirate=1,
-                       flow_rate_dispense=1,
-                       reagent_reservoir_volume=1000,
-                       num_wells=1,  # change with num samples
-                       delay=0,
-                       h_cono=h_cone,
-                       v_fondo=volume_cone  # V cono
-                       )
+    # taq_path = Reagent(name='R1_MM_TaqPath',
+    #                    rinse=False,
+    #                    flow_rate_aspirate=1,
+    #                    flow_rate_dispense=1,
+    #                    reagent_reservoir_volume=1000,
+    #                    num_wells=1,  # change with num samples
+    #                    delay=0,
+    #                    h_cono=h_cone,
+    #                    v_fondo=volume_cone  # V cono
+    #                    )
 
-    covid_assay = Reagent(name='R2_AM_TaqPath_Covid19_assay',
-                          rinse=False,
-                          flow_rate_aspirate=1,
-                          flow_rate_dispense=1,
-                          reagent_reservoir_volume=150,
-                          num_wells=1,  # change with num samples
-                          delay=0,
-                          h_cono=h_cone,
-                          v_fondo=volume_cone  # V cono
-                          )
-    positive_control = Reagent(name='Positive control',
-                          rinse=False,
-                          flow_rate_aspirate=1,
-                          flow_rate_dispense=1,
-                          reagent_reservoir_volume=50,
-                          num_wells=1,  # change with num samples
-                          delay=0,
-                          h_cono=h_cone,
-                          v_fondo=volume_cone  # V cono
-                          )
+    # covid_assay = Reagent(name='R2_AM_TaqPath_Covid19_assay',
+    #                       rinse=False,
+    #                       flow_rate_aspirate=1,
+    #                       flow_rate_dispense=1,
+    #                       reagent_reservoir_volume=150,
+    #                       num_wells=1,  # change with num samples
+    #                       delay=0,
+    #                       h_cono=h_cone,
+    #                       v_fondo=volume_cone  # V cono
+    #                       )
+    # positive_control = Reagent(name='Positive control',
+    #                       rinse=False,
+    #                       flow_rate_aspirate=1,
+    #                       flow_rate_dispense=1,
+    #                       reagent_reservoir_volume=50,
+    #                       num_wells=1,  # change with num samples
+    #                       delay=0,
+    #                       h_cono=h_cone,
+    #                       v_fondo=volume_cone  # V cono
+    #                       )
     
 
-    MMIX = Reagent(name='Master Mix',
-                   rinse=False,
-                   flow_rate_aspirate=1,
-                   flow_rate_dispense=1,
-                   reagent_reservoir_volume=MMIX_make["volume_available"],
-                   num_wells=1,  # change with num samples
-                   delay=0,
-                   h_cono=h_cone,
-                   v_fondo=volume_cone  # V cono
-                   )
+    # MMIX = Reagent(name='Master Mix',
+    #                rinse=False,
+    #                flow_rate_aspirate=1,
+    #                flow_rate_dispense=1,
+    #                reagent_reservoir_volume=MMIX_make["volume_available"],
+    #                num_wells=1,  # change with num samples
+    #                delay=0,
+    #                h_cono=h_cone,
+    #                v_fondo=volume_cone  # V cono
+    #                )
 
-    pcr_well = Reagent(name='Samples',
-                       rinse=False,
-                       flow_rate_aspirate=1,
-                       flow_rate_dispense=1,
-                       reagent_reservoir_volume=0,
-                       delay=0,
-                       num_wells=num_cols,  # num_cols comes from available columns
-                       h_cono=0,
-                       v_fondo=0
-                       )
+    # pcr_well = Reagent(name='Samples',
+    #                    rinse=False,
+    #                    flow_rate_aspirate=1,
+    #                    flow_rate_dispense=1,
+    #                    reagent_reservoir_volume=0,
+    #                    delay=0,
+    #                    num_wells=num_cols,  # num_cols comes from available columns
+    #                    h_cono=0,
+    #                    v_fondo=0
+    #                    )
 
-    elution_well = Reagent(name='Elution',
-                           rinse=False,
-                           flow_rate_aspirate=1,
-                           flow_rate_dispense=1,
-                           reagent_reservoir_volume=elution_initial_volume,
-                           delay=0,
-                           num_wells=num_cols,  # num_cols comes from available columns
-                           h_cono=0,
-                           v_fondo=0
-                           )
+    # elution_well = Reagent(name='Elution',
+    #                        rinse=False,
+    #                        flow_rate_aspirate=1,
+    #                        flow_rate_dispense=1,
+    #                        reagent_reservoir_volume=elution_initial_volume,
+    #                        delay=0,
+    #                        num_wells=num_cols,  # num_cols comes from available columns
+    #                        h_cono=0,
+    #                        v_fondo=0
+    #                        )
 
-    MMIX_components = [mmix_water, taq_path, covid_assay]
+    # MMIX_components = [mmix_water, taq_path, covid_assay]
 
     ################################################################################
     # Declare which reagents are in each reservoir as well as deepwell and elution plate
@@ -218,58 +210,11 @@ def run(ctx: protocol_api.ProtocolContext):
     # STEP 1: Make Master MIX
     ############################################################################
     if (run.next_step()):
-        run.stop_lights()
-        run.comment('Selected MMIX: ' +
+        run.comment('first step MMIX: ' +
                     select_mmix, add_hash=True)
 
         run.set_pip("left")
-        run.pick_up()
-        drop = False
-        for i, [source] in enumerate(MMIX_components_location):
-            run.comment('Add component: ' +
-                        MMIX_components[i].name, add_hash=True)
-
-            # Get volumen calculated
-            vol = MMIX_make["volumes"][i]
-            # because 20ul is the maximum volume of the tip we will choose 17
-            if (vol + air_gap_vol) > run.get_pip_capacity():
-                # calculate what volume should be transferred in each step
-                vol_list = run.divide_volume(vol, run.get_pip_capacity())
-                for vol in vol_list:
-                    # If not in first step we need to change everytime
-                    if(i > 0):
-                        run.pick_up()
-
-                    run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX_destination[0],
-                                              vol=vol, air_gap_vol=air_gap_vol, pickup_height=0, disp_height=0, blow_out=False)
-
-                    # If not in first step we need to change everytime
-                    if(i > 0):
-                        run.drop_tip()
-                        drop = True
-
-            else:
-                if(i > 0):
-                    run.pick_up()
-                run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX_destination[0],
-                                          vol=vol, air_gap_vol=air_gap_vol, pickup_height=1,
-                                          disp_height=-10, blow_out=False)
-                if(i > 0):
-                    run.drop_tip()
-                    drop = True
-
-            if i+1 < len(MMIX_components):
-                if(not drop):
-                    run.drop_tip()
-
-            else:
-                run.pick_up()
-                run.comment('Final mix', add_hash=True)
-
-                run.custom_mix(reagent=MMIX, location=MMIX_destination[0], vol=50, rounds=5,
-                               blow_out=False, mix_height=2)
-                run.drop_tip()
-
+        
         run.finish_step()
 
     ############################################################################
@@ -278,86 +223,6 @@ def run(ctx: protocol_api.ProtocolContext):
     # run.start_lights()
     if (run.next_step()):
         run.set_pip("right")
-        run.pick_up()
-        volumen_mmix = MMIX_make["volume_available"]
-        for dest in pcr_wells:
-            [pickup_height, col_change] = run.calc_height(
-                MMIX, area_section_screwcap, MMIX_make["volume_mmix"])
-
-            run.move_vol_multichannel(reagent=MMIX, source=MMIX_destination[0],
-                                      dest=dest, vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
-                                      pickup_height=pickup_height, disp_height=-10,
-                                      blow_out=False, touch_tip=True)
-                                      # change
-
-        run.drop_tip()
-        run.finish_step()
-        tempdeck.deactivate()
-
-    ############################################################################
-    # STEP 3: TRANSFER Samples
-    ############################################################################
-    if(run.next_step()):
-        run.comment('pcr_wells')
-        run.set_pip("right")
-        # Loop over defined wells
-        for s, d in zip(elution_wells, pcr_wells):
-            run.comment("%s %s" % (s, d))
-            run.pick_up()
-            # Source samples
-            run.move_vol_multichannel(reagent=elution_well, source=s, dest=d,
-                                      vol=volume_elution, air_gap_vol=air_gap_sample,
-                                      pickup_height=3, disp_height=-10,
-                                      blow_out=False, touch_tip=True, post_airgap=True)
-
-            # ADD Custom mix
-            run.drop_tip()
-
-        run.finish_step()
-
-    ############################################################################
-    # STEP 4: Set up positive control
-    ############################################################################
-    if(run.next_step()):
-        run.comment('pcr_wells')
-        run.set_pip("right")
-        run.pick_up()
-        # Negative control
-        run.move_vol_multichannel(reagent=positive_control, source=elution_plate.wells('G12')[0],
-                                  dest=pcr_plate.wells('G12')[0],
-                                  vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=0,
-                                  blow_out=True, touch_tip=True, post_airgap=True,)
-        run.drop_tip()
-        run.pick_up()
-        run.move_vol_multichannel(reagent=positive_control, source=MMIX_destination[0],
-                                  dest=pcr_plate.wells('H12')[0],
-                                  vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=0,
-                                  blow_out=True, touch_tip=True, post_airgap=True,)
-
-        # ADD Custom mix
-        run.drop_tip()
-
-
-        run.pick_up()
-        # Positive control
-        run.move_vol_multichannel(reagent=positive_control, source=tuberack.wells('A6')[0],
-                                  dest=pcr_plate.wells('H12')[0],
-                                  vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=0,
-                                  blow_out=True, touch_tip=True, post_airgap=True,)
-        #run.drop_tip()
-        #run.pick_up()
-
-        run.move_vol_multichannel(reagent=positive_control, source=MMIX_destination[0],
-                                  dest=pcr_plate.wells('H12')[0],
-                                  vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=0,
-                                  blow_out=True, touch_tip=True, post_airgap=True,)
-
-        # ADD Custom mix
-        run.drop_tip()
         run.finish_step()
 
     ############################################################################
@@ -411,6 +276,17 @@ class ProtocolRun:
         self.step_list.append(
             {'Execute': execute, 'description': description, 'wait_time': wait_time})
 
+    def init_steps(self,steps):
+        if(len(steps) > 0):
+            for index in steps:
+                if(index <= len(run.step_list)):
+                    self.setExecutionStep(index-1,True)
+                else:
+                    print("Step index out of range")
+        else:
+            for index, step in enumerate(len(run.step_list)):
+                self.setExecutionStep(index,True)
+
     def setExecutionStep(self, index, value):
         self.step_list[index]["Execute"] = value
 
@@ -434,17 +310,21 @@ class ProtocolRun:
         self.step_list[self.step]['Time'] = str(time_taken)
         self.step += 1
 
-    def mount_pip(self, position, type, tip_racks, capacity):
+    def mount_pip(self, position, type, tip_racks, capacity.,multi=False):
         self.pips[position]["pip"] = self.ctx.load_instrument(
             type, mount=position, tip_racks=tip_racks)
         self.pips[position]["capacity"] = capacity
         self.pips[position]["count"] = 0
         self.pips[position]["maxes"] = len(tip_racks)
+        if(multi):
+            self.pips[position]["increment_tips"] = 8
+        else:
+            self.pips[position]["increment_tips"] = 1
 
-    def mount_right_pip(self, type, tip_racks, capacity):
+    def mount_right_pip(self, type, tip_racks, capacity,multi=False):
         self.mount_pip("right", type, tip_racks, capacity)
 
-    def mount_left_pip(self, type, tip_racks, capacity):
+    def mount_left_pip(self, type, tip_racks, capacity,multi=False):
         self.mount_pip("left", type, tip_racks, capacity)
 
     def get_current_pip(self):
@@ -457,7 +337,7 @@ class ProtocolRun:
         self.pips[self.selected_pip]["count"] = 0
 
     def add_pip_count(self):
-        self.pips[self.selected_pip]["count"] + 1
+        self.pips[self.selected_pip]["count"] + self.pips[self.selected_pip]["increment_tips"]
 
     def get_pip_maxes(self):
         return self.pips[self.selected_pip]["maxes"]
@@ -514,6 +394,9 @@ class ProtocolRun:
         pip.drop_tip()
         self.add_pip_count()
 
+    def change_tip(self):
+        self.drop_tip()
+        self.pick_up()
     def comment(self, comment, add_hash=False):
         hash_string = '#######################################################'
         if not self.ctx.is_simulating():
