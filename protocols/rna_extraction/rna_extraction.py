@@ -13,7 +13,7 @@ import csv
 
 # metadata
 metadata = {
-    'protocolName': 'Per Version 2',
+    'protocolName': 'RNA Extraction Version 2',
     'author': 'Matias Bonet Fullana & Antoni Morla. based on: Malen Aguirregabiria,Aitor Gastaminza & José Luis Villanueva (jlvillanueva@clinic.cat)',
     'source': 'Hospital Son Espases Palma',
     'apiLevel': '2.2',
@@ -84,32 +84,24 @@ def run(ctx: protocol_api.ProtocolContext):
     run.addStep(description="Set up positive control")
 
     # execute avaliaible steps
-    if(len(steps) > 0):
-        for index in steps:
-            if(index <= len(run.step_list)):
-                run.setExecutionStep(index-1,True)
-            else:
-                print("Step index out of range")
-    else:
-        for index, step in enumerate(len(run.step_list)):
-            run.setExecutionStep(index,True)
-
+    run.init_steps(steps)
+    
         
     ##################################
     # Define desk
-    tempdeck = ctx.load_module('tempdeck', '10')
-    tuberack = tempdeck.load_labware(
-        'opentrons_24_aluminumblock_generic_2ml_screwcap')
+    # tempdeck = ctx.load_module('tempdeck', '10')
+    # tuberack = tempdeck.load_labware(
+    #     'opentrons_24_aluminumblock_generic_2ml_screwcap')
 
-    # tempdeck.set_temperature(temperature)
+    # # tempdeck.set_temperature(temperature)
 
-    # PCR
-    pcr_plate = ctx.load_labware(
-        'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '11')
+    # # PCR
+    # pcr_plate = ctx.load_labware(
+    #     'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '11')
 
-    # Eluted from King fisher/ Manual / Other
-    elution_plate = ctx.load_labware(
-        'biorad_96_wellplate_200ul_pcr', '8')
+    # # Eluted from King fisher/ Manual / Other
+    # elution_plate = ctx.load_labware(
+    #     'biorad_96_wellplate_200ul_pcr', '8')
 
     # Tipracks20_multi
     tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 9)
@@ -117,7 +109,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Mount pippets and set racks
     run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
-    run.mount_left_pip('p300_single_gen2', tip_racks=[tips300], capacity=300)
+    run.mount_left_pip('p300_multi_gen2', tip_racks=[tips300], capacity=300,multi=True)
 
     # Define wells interaction
     # Reagents and their characteristics
@@ -411,6 +403,17 @@ class ProtocolRun:
         self.step_list.append(
             {'Execute': execute, 'description': description, 'wait_time': wait_time})
 
+    def init_steps(self,steps):
+        if(len(steps) > 0):
+            for index in steps:
+                if(index <= len(run.step_list)):
+                    self.setExecutionStep(index-1,True)
+                else:
+                    print("Step index out of range")
+        else:
+            for index, step in enumerate(len(run.step_list)):
+                self.setExecutionStep(index,True)
+
     def setExecutionStep(self, index, value):
         self.step_list[index]["Execute"] = value
 
@@ -434,17 +437,21 @@ class ProtocolRun:
         self.step_list[self.step]['Time'] = str(time_taken)
         self.step += 1
 
-    def mount_pip(self, position, type, tip_racks, capacity):
+    def mount_pip(self, position, type, tip_racks, capacity.,multi=False):
         self.pips[position]["pip"] = self.ctx.load_instrument(
             type, mount=position, tip_racks=tip_racks)
         self.pips[position]["capacity"] = capacity
         self.pips[position]["count"] = 0
         self.pips[position]["maxes"] = len(tip_racks)
+        if(multi):
+            self.pips[position]["increment_tips"] = 8
+        else:
+            self.pips[position]["increment_tips"] = 1
 
-    def mount_right_pip(self, type, tip_racks, capacity):
+    def mount_right_pip(self, type, tip_racks, capacity,multi=False):
         self.mount_pip("right", type, tip_racks, capacity)
 
-    def mount_left_pip(self, type, tip_racks, capacity):
+    def mount_left_pip(self, type, tip_racks, capacity,multi=False):
         self.mount_pip("left", type, tip_racks, capacity)
 
     def get_current_pip(self):
