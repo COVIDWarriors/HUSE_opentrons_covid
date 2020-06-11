@@ -27,7 +27,7 @@ metadata = {
 # Defined variables
 ##################
 NUM_SAMPLES = 8
-steps = [3] # Steps you want to execute
+steps = [] # Steps you want to execute
 
 
 air_gap_vol = 10
