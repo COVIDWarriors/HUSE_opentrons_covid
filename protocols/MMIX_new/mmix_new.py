@@ -503,11 +503,13 @@ class ProtocolRun:
                            x_offset=x_offset)
         # SOURCE
         s = source.bottom(pickup_height).move(Point(x=x_offset[0]))
-        if (s < dest.bottom()):
+        print(s.point.x)
+        print(dest.bottom().point.x)
+        if (s.point.x <= dest.bottom()).point.x:
             run.comment("Pickup height too low you will hit the bottom")
             return False
 
-        if (s > dest.top()):
+        if (s >= dest.top()):
             run.comment("Pickup too high you will not get any liquid")
             return False
 
