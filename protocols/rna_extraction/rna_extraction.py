@@ -26,8 +26,8 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES = 96
-steps = [3]  # Steps you want to execute
+NUM_SAMPLES = 16
+steps = []  # Steps you want to execute
 
 volumen_r1 = 5
 
@@ -100,7 +100,7 @@ class ProtocolRun:
 
     def addStep(self, description, execute=False, wait_time=0):
         self.step_list.append(
-            {'Execute': execute, 'description': description, 'wait_time': wait_time})
+            {'Execute': execute, 'description': description, 'wait_time': wait_time,'execution_time':0})
 
     def init_steps(self, steps):
         if(len(steps) > 0):
@@ -132,7 +132,7 @@ class ProtocolRun:
         self.comment('Step ' + str(self.step + 1) + ': ' +
                      self.step_list[self.step]['description'] + ' took ' + str(time_taken), add_hash=True)
 
-        self.step_list[self.step]['Time'] = str(time_taken)
+        self.step_list[self.step]['execution_time'] = str(time_taken)
         self.step += 1
 
     def mount_pip(self, position, type, tip_racks, capacity, multi=False, size_tipracks=96):
@@ -460,14 +460,17 @@ def run(ctx: protocol_api.ProtocolContext):
         'opentrons_24_tuberack_nest_1.5ml_screwcap', 1)
     
     aw_plate = ctx.load_labware(moving_type, 2)
-    aw_wells = aw_plate.wells()[: NUM_SAMPLES]
+    aw_wells = aw_plate.wells()[:NUM_SAMPLES]
     aw_wells_multi = aw_plate.rows()[0][:num_cols]
+    print("----------")
+    print(aw_wells_multi)
+    
     
     # Magnetic Beads Pool
     mag_beads_pool = ctx.load_labware(
         'nest_12_reservoir_15ml', 3)
     mag_beads_multi = mag_beads_pool.rows()[0][:num_cols]
-
+    print(mag_beads_multi)
      # setup up sample sources and destinations
     # Wash Buffer Pool
     wb_pool = ctx.load_labware(
@@ -489,11 +492,12 @@ def run(ctx: protocol_api.ProtocolContext):
     # Mount pippets and set racks
     # Tipracks20_multi
     tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 11)
-    tips300 = [ctx.load_labware('opentrons_96_filtertiprack_200ul', slot) for slot in ["9"] ]
-    
+    tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', "9")
+    tips300_1 = ctx.load_labware('opentrons_96_filtertiprack_200ul', "6")
+        
     run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
     run.mount_left_pip('p300_multi_gen2', tip_racks= 
-                       tips300, capacity=200, multi=True)
+                       [tips300,tips300_1], capacity=200, multi=True)
 
     Isopropanol = Reagent(name='Isopropanol',
                           flow_rate_aspirate=1,  # Original = 0.5
@@ -544,13 +548,12 @@ def run(ctx: protocol_api.ProtocolContext):
                        disposal_volume=1,
                        rinse=True,
                        max_volume_allowed=180,
-                       reagent_volume=500,
-                       reagent_reservoir_volume=NUM_SAMPLES * 500,  # 11920,
+                       reagent_volume=250,
+                       reagent_reservoir_volume=NUM_SAMPLES * 250 * 1.1,  # 11920,
                        # num_Wells max is 4,
-                       num_wells=math.ceil((NUM_SAMPLES + 5) * 500 / 13000),
+                       num_wells=num_cols,
                        h_cono=1.95,
-                       v_fondo=750,  # 1.95 * multi_well_rack_area / 2, #Prismatic
-                       tip_recycling='A2')
+                       v_fondo=750)
 
     SPR = Reagent(name='SPR',
                   flow_rate_aspirate=3,  # Original = 1
@@ -643,9 +646,6 @@ def run(ctx: protocol_api.ProtocolContext):
                       v_fondo=4 * math.pi * 4 ** 3 / 3
                       )
 
-    # setup up sample sources and destinations
-    aw_wells = aw_plate.wells()[: NUM_SAMPLES]
-    aw_wells_multi = aw_plate.rows()[: NUM_SAMPLES]
     
     #elution_wells=elution_plate.wells()[: NUM_SAMPLES]
 
@@ -685,21 +685,22 @@ def run(ctx: protocol_api.ProtocolContext):
     if (run.next_step()):
         ############################################################################
         # Light flash end of program
-        run.comment("this is not implemented yet")
         run.set_pip("left") # p300 multi
+
         
-        for s,d in zip(aw_wells_multi,mag_beads_multi):
+        for source,destination in zip(mag_beads_multi,aw_wells_multi):
             run.pick_up()
-            run.move_vol_multichannel(reagent=Beads_PK, source=s[0],
-                                      dest=d, vol=150, air_gap_vol=air_gap_r1,
-                                      pickup_height=0, disp_height=-10,
+            run.move_vol_multichannel(reagent=Beads_PK, source=source,
+                                      dest=destination, vol=150, air_gap_vol=air_gap_r1,
+                                      pickup_height=1, disp_height=-4,
                                       blow_out=True, touch_tip=True, rinse=False)
             run.change_tip()
-            run.move_vol_multichannel(reagent=Beads_PK, source=s[0],
-                                      dest=d, vol=125, air_gap_vol=air_gap_r1,
-                                      pickup_height=0, disp_height=-10,
+            run.move_vol_multichannel(reagent=Beads_PK, source=source,
+                                      dest=destination, vol=125, air_gap_vol=air_gap_r1,
+                                      pickup_height=1, disp_height=-5,
                                       blow_out=True, touch_tip=True, rinse=False)
-        run.drop_tip()
+            run.drop_tip()
+
         run.finish_step()
 
     ############################################################################
