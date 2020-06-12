@@ -455,6 +455,7 @@ def run(ctx: protocol_api.ProtocolContext):
     run.addStep(description="Wait until bell is done")
     run.addStep(description="Transfer BBUIX 3 - 2 Multi")
     run.addStep(description="Transfer B6 - To AW_PLATE Single")
+    run.addStep(description="65C Incubation",wait_time=300)
 
     # execute avaliaible steps
     run.init_steps(steps)
@@ -743,6 +744,15 @@ def run(ctx: protocol_api.ProtocolContext):
             # If not in first step we need to change everytime
             run.drop_tip()
 
+        run.finish_step()
+
+    ############################################################################
+    # STEP 7: Incubation at 65ºC
+    ############################################################################
+    if (run.next_step()):
+
+        tempdeck.set_temperature(65)
+        
         run.finish_step()
 
     run.log_steps_time()
