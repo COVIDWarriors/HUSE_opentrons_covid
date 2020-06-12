@@ -24,12 +24,14 @@ metadata = {
 'technician': '$technician',
 'date': '$date'
 '''
+# Defien boolean variable to ask if want deactivate termoblock after step 3
+##################
+stop_termoblock = True
+
 # Defined variables
 ##################
 NUM_SAMPLES = 8
-steps = [] # Steps you want to execute
-
-
+steps = [2,3] # Steps you want to execute
 air_gap_vol = 10
 air_gap_mmix = 0
 air_gap_sample = 0
@@ -272,6 +274,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
         run.finish_step()
 
+    
     ############################################################################
     # STEP 2: Transfer Master MIX
     ############################################################################
@@ -289,7 +292,7 @@ def run(ctx: protocol_api.ProtocolContext):
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
                                       # change
-            # mmix to positive and negativo control
+        # mmix to positive and negativo control
         #    -> Positive
         run.move_vol_multichannel(reagent=positive_control, source=tuberack.wells('D6')[0],
                                   dest=pcr_plate.wells('H12')[0],
@@ -303,13 +306,51 @@ def run(ctx: protocol_api.ProtocolContext):
                                   vol=volume_elution, air_gap_vol=air_gap_sample,
                                   pickup_height=3, disp_height=-10,
                                   blow_out=True, touch_tip=True, post_airgap=True,)
+        
+        # Negative control wtith the same tip than mastermix solution
+        run.move_vol_multichannel(reagent=positive_control, source=elution_plate.wells('G12')[0],
+                                  dest=pcr_plate.wells('G12')[0],
+                                  vol=volume_elution, air_gap_vol=air_gap_sample,
+                                  pickup_height=3, disp_height=-10,
+                                  blow_out=True, touch_tip=True, post_airgap=True)
+        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('G12')[0], vol=8, rounds=3,
+                               blow_out=False, mix_height=2)
 
         run.drop_tip()
         run.finish_step()
         tempdeck.deactivate()
+    
+    ############################################################################
+    # STEP 3: Set up positive control
+    ############################################################################
+    if(run.next_step()):
+        run.comment('pcr_wells')
+        run.set_pip("right")
+        run.pick_up()
+        
+        # Positive Control
+        run.move_vol_multichannel(reagent=positive_control, source=tuberack.wells('A6')[0],
+                                  dest=pcr_plate.wells('H12')[0],
+                                  vol=volume_elution, air_gap_vol=air_gap_sample,
+                                  pickup_height=3, disp_height=-10,
+                                  blow_out=True, touch_tip=True, post_airgap=True)
+        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=3,
+                               blow_out=False, mix_height=2)
+        
+        ####################################
+         # ASK IF WANT DEACTIVATE TERMOBLOCK
+        ####################################
+        if stop_termoblock == True:
+            ctx.pause("Please remove the bermoblock module to continue")
+            run.blink()
+
+
+        run.drop_tip()
+        run.finish_step()
+
 
     ############################################################################
-    # STEP 3: TRANSFER Samples
+    # STEP 4: TRANSFER Samples
     ############################################################################
     if(run.next_step()):
         run.comment('pcr_wells')
@@ -331,37 +372,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
         run.finish_step()
 
-    ############################################################################
-    # STEP 4: Set up positive control
-    ############################################################################
-    if(run.next_step()):
-        run.comment('pcr_wells')
-        run.set_pip("right")
-        run.pick_up()
 
-        # Negative control
-        run.move_vol_multichannel(reagent=positive_control, source=elution_plate.wells('G12')[0],
-                                  dest=pcr_plate.wells('G12')[0],
-                                  vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=-10,
-                                  blow_out=True, touch_tip=True, post_airgap=True)
-        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('G12')[0], vol=8, rounds=3,
-                               blow_out=False, mix_height=2)
-        
-        run.change_tip()
-        
-        # Positive Control
-
-        run.move_vol_multichannel(reagent=positive_control, source=tuberack.wells('A6')[0],
-                                  dest=pcr_plate.wells('H12')[0],
-                                  vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=-10,
-                                  blow_out=True, touch_tip=True, post_airgap=True)
-        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=3,
-                               blow_out=False, mix_height=2)
-
-        run.drop_tip()
-        run.finish_step()
 
     ############################################################################
     # Light flash end of program
