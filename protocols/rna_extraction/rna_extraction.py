@@ -26,9 +26,8 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES = 8
-
-steps = [2]  # Steps you want to execute
+NUM_SAMPLES = 96
+steps = [3]  # Steps you want to execute
 
 volumen_r1 = 5
 
@@ -49,10 +48,6 @@ volume_cone = 57  # Volume in ul that fit in the screwcap cone
 area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
 h_cone = (volume_cone * 3 / area_section_screwcap)
 num_cols = math.ceil(NUM_SAMPLES/8)
-
-# # Parche que no me gusta pero no se como 
-# def comment_2(ctx,comment):
-#         ctx.comment(comment)
 
 ##################
 # Custom function
@@ -140,12 +135,12 @@ class ProtocolRun:
         self.step_list[self.step]['Time'] = str(time_taken)
         self.step += 1
 
-    def mount_pip(self, position, type, tip_racks, capacity, multi=False):
+    def mount_pip(self, position, type, tip_racks, capacity, multi=False, size_tipracks=96):
         self.pips[position]["pip"] = self.ctx.load_instrument(
             type, mount=position, tip_racks=tip_racks)
         self.pips[position]["capacity"] = capacity
         self.pips[position]["count"] = 0
-        self.pips[position]["maxes"] = len(tip_racks)
+        self.pips[position]["maxes"] = len(tip_racks)*size_tipracks
         if(multi):
             self.pips[position]["increment_tips"] = 8
         else:
@@ -213,7 +208,7 @@ class ProtocolRun:
         if not self.ctx.is_simulating():
             if self.get_pip_count() == self.get_pip_maxes():
                 self.ctx.pause('Replace ' + str(pip.max_volume) + 'µl tipracks before \
-                resuming.')
+                    resuming.')
                 pip.reset_tipracks()
                 self.reset_pip_count()
 
@@ -233,10 +228,10 @@ class ProtocolRun:
         hash_string = '#######################################################'
         if not self.ctx.is_simulating():
             if (add_hash):
-                self.ctx.comment(self.ctx,hash_string)
-            comment_2(self.ctx,('{}').format(comment))
+                self.ctx.comment(hash_string)
+            self.ctx.comment(('{}').format(comment))
             if (add_hash):
-                comment_2(self.ctx,hash_string)
+                self.ctx.comment(hash_string)
         else:
             if (add_hash):
                 print(hash_string)
@@ -463,6 +458,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
     tube_rack = ctx.load_labware(
         'opentrons_24_tuberack_nest_1.5ml_screwcap', 1)
+    
     aw_plate = ctx.load_labware(moving_type, 2)
     aw_wells = aw_plate.wells()[: NUM_SAMPLES]
     aw_wells_multi = aw_plate.rows()[0][:num_cols]
@@ -493,13 +489,11 @@ def run(ctx: protocol_api.ProtocolContext):
     # Mount pippets and set racks
     # Tipracks20_multi
     tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 11)
-    tips300_1 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 5)
-    tips300_2 = ctx.load_labware('opentrons_96_filtertiprack_200uL', 6)
-    tips300_3 = ctx.load_labware('opentrons_96_filtertiprack_200uL', 9)
-
+    tips300 = [ctx.load_labware('opentrons_96_filtertiprack_200ul', slot) for slot in ["9"] ]
+    
     run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
-    run.mount_left_pip('p300_multi_gen2', tip_racks=[
-                       tips300_1, tips300_2, tips300_3], capacity=300, multi=True)
+    run.mount_left_pip('p300_multi_gen2', tip_racks= 
+                       tips300, capacity=200, multi=True)
 
     Isopropanol = Reagent(name='Isopropanol',
                           flow_rate_aspirate=1,  # Original = 0.5
@@ -693,14 +687,15 @@ def run(ctx: protocol_api.ProtocolContext):
         # Light flash end of program
         run.comment("this is not implemented yet")
         run.set_pip("left") # p300 multi
-        run.pick_up()
+        
         for s,d in zip(aw_wells_multi,mag_beads_multi):
-            run.move_vol_multichannel(reagent=Beads_PK, source=s,
+            run.pick_up()
+            run.move_vol_multichannel(reagent=Beads_PK, source=s[0],
                                       dest=d, vol=150, air_gap_vol=air_gap_r1,
                                       pickup_height=0, disp_height=-10,
                                       blow_out=True, touch_tip=True, rinse=False)
             run.change_tip()
-            run.move_vol_multichannel(reagent=Beads_PK, source=s,
+            run.move_vol_multichannel(reagent=Beads_PK, source=s[0],
                                       dest=d, vol=125, air_gap_vol=air_gap_r1,
                                       pickup_height=0, disp_height=-10,
                                       blow_out=True, touch_tip=True, rinse=False)
