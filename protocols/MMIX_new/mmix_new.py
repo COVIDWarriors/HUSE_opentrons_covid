@@ -437,7 +437,7 @@ class ProtocolRun:
         self.start = datetime.now()
         return True
 
-    def finish_step(self):
+    def finish_step(self,wait_on=True):
         for c in robot.commands():
             print(c)
         end = datetime.now()
@@ -447,6 +447,8 @@ class ProtocolRun:
 
         self.step_list[self.step]['Time'] = str(time_taken)
         self.step += 1
+        if(self.step_list[self.step]['wait_time']>0 and wait_on):
+            self.ctx.delay(self.step_list[self.step]['wait_time'])
 
     def mount_pip(self, position, type, tip_racks, capacity):
         self.pips[position]["pip"] = self.ctx.load_instrument(

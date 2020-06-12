@@ -630,7 +630,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Define wells interaction
     # Reagents and their characteristics
-    reactivo_1 = Reagent(name='Reactivo 1',
+    Prot_K = Reagent(name='Proteinasa K',
                          num_wells=1,  # change with num samples
                          delay=0,
                          flow_rate_aspirate=3,  # Original 0.5
@@ -647,7 +647,7 @@ def run(ctx: protocol_api.ProtocolContext):
                          h_cono=4,
                          v_fondo=4 * math.pi * 4 ** 3 / 3
                          )
-    reactivo_2 = Reagent(name='Reactivo 1',
+    MS2 = Reagent(name='Reactivo 1',
                          num_wells=1,  # change with num samples
                          delay=0,
                          flow_rate_aspirate=3,  # Original 0.5
@@ -685,6 +685,8 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # setup up sample sources and destinations
     aw_wells = aw_plate.wells()[: NUM_SAMPLES]
+    aw_wells_multi = aw_plate.rows()[: NUM_SAMPLES]
+    
     #elution_wells=elution_plate.wells()[: NUM_SAMPLES]
 
     ############################################################################
@@ -697,9 +699,9 @@ def run(ctx: protocol_api.ProtocolContext):
 
         for dest in aw_wells:
             [pickup_height, col_change] = run.calc_height(
-                reactivo_1, area_section_screwcap, volumen_r1_total)
+                Prot_K, area_section_screwcap, volumen_r1_total)
 
-            run.move_vol_multichannel(reagent=reactivo_1, source=tube_rack.wells("A6")[0],
+            run.move_vol_multichannel(reagent=Prot_K, source=tube_rack.wells("A6")[0],
                                       dest=dest, vol=volumen_r1, air_gap_vol=air_gap_r1,
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
@@ -712,7 +714,9 @@ def run(ctx: protocol_api.ProtocolContext):
     # STEP 2: Pause until the Bell is done
     ############################################################################
     if (run.next_step()):
+
         ctx.pause('Go to the bell to disable sample')
+        
         run.finish_step()
 
     ############################################################################
@@ -732,10 +736,10 @@ def run(ctx: protocol_api.ProtocolContext):
         
         for dest in aw_wells:
             [pickup_height, col_change] = run.calc_height(
-                reactivo_1, area_section_screwcap, volumen_r1_total)
+                Prot_K, area_section_screwcap, volumen_r1_total)
     
             run.pick_up()
-            run.move_vol_multichannel(reagent=reactivo_2, source=tube_rack.wells("B6")[0],
+            run.move_vol_multichannel(reagent=MS2, source=tube_rack.wells("B6")[0],
                                       dest=dest, vol=volumen_r1, air_gap_vol=air_gap_r1,
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
