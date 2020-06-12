@@ -446,8 +446,6 @@ class ProtocolRun:
 
 def run(ctx: protocol_api.ProtocolContext):
 
-    
-    
     # Init protocol run
     run = ProtocolRun(ctx)
     # yo creo que este tiene que ser manual o sacarlo a otro robot
