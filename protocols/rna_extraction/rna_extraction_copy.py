@@ -789,7 +789,8 @@ def run(ctx: protocol_api.ProtocolContext):
     # Temperature module plus NEST_Deep_well_reservoire
     tempdeck = ctx.load_module('tempdeck', 10)
     temp_well = tempdeck.load_labware(moving_type)
-    
+    # tempdeck.set_temperature(temperature)
+
     # Mount pippets and set racks
     # Tipracks20_multi
     tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 11)
@@ -821,6 +822,25 @@ def run(ctx: protocol_api.ProtocolContext):
                           )
 
     # Reagents and their characteristics
+    Lysis = Reagent(name='Lysis',
+                    flow_rate_aspirate=1,  # Original = 0.5
+                    flow_rate_dispense=1,  # Original = 1
+                    flow_rate_aspirate_mix=1,  # Liquid density very high, needs slow aspiration
+                    flow_rate_dispense_mix=1,  # Liquid density very high, needs slow dispensation
+                    air_gap_vol_bottom=5,
+                    air_gap_vol_top=0,
+                    disposal_volume=1,
+                    rinse=True,
+                    max_volume_allowed=180,
+                    reagent_volume=275,  # reagent volume needed per sample
+                    reagent_reservoir_volume=(
+                        NUM_SAMPLES + 5) * 275,  # 70000, #51648
+                    # num_Wells max is 4, 13000 is the reservoir max volume (eventhough reservoir allows 15000)
+                    num_wells=math.ceil((NUM_SAMPLES + 5) * 275 / 13000),
+                    h_cono=1.95,
+                    v_fondo=750,  # 1.95 * multi_well_rack_area / 2, #Prismatic
+                    tip_recycling='A1')
+
     VHB = Reagent(name='VHB',
                   flow_rate_aspirate=3,
                   flow_rate_dispense=3,
@@ -894,9 +914,26 @@ def run(ctx: protocol_api.ProtocolContext):
                     h_cono=1.95,
                     v_fondo=750)  # 1.95*multi_well_rack_area/2) #Prismatic
 
+    Elution = Reagent(name='Elution',
+                      flow_rate_aspirate=3,  # Original 0.5
+                      flow_rate_dispense=3,  # Original 1
+                      flow_rate_aspirate_mix=15,
+                      flow_rate_dispense_mix=25,
+                      air_gap_vol_bottom=5,
+                      air_gap_vol_top=0,
+                      disposal_volume=1,
+                      rinse=False,
+                      max_volume_allowed=150,
+                      reagent_volume=50,
+                      reagent_reservoir_volume=(
+                          NUM_SAMPLES + 5) * 50,  # 14800,
+                      num_wells=num_cols,  # num_cols comes from available columns
+                      h_cono=4,
+                      v_fondo=4 * math.pi * 4 ** 3 / 3)  # Sphere
+
     # Define wells interaction
     # Reagents and their characteristics
-    Prot_K = Reagent(name='Proteinasa K',
+    reactivo_1 = Reagent(name='Reactivo 1',
                          num_wells=1,  # change with num samples
                          delay=0,
                          flow_rate_aspirate=3,  # Original 0.5
@@ -913,7 +950,7 @@ def run(ctx: protocol_api.ProtocolContext):
                          h_cono=4,
                          v_fondo=4 * math.pi * 4 ** 3 / 3
                          )
-    MS2 = Reagent(name='Reactivo 1',
+    reactivo_2 = Reagent(name='Reactivo 1',
                          num_wells=1,  # change with num samples
                          delay=0,
                          flow_rate_aspirate=3,  # Original 0.5
@@ -951,8 +988,6 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # setup up sample sources and destinations
     aw_wells = aw_plate.wells()[: NUM_SAMPLES]
-    aw_wells_multi = aw_plate.rows()[: NUM_SAMPLES]
-    
     #elution_wells=elution_plate.wells()[: NUM_SAMPLES]
 
     ############################################################################
@@ -965,9 +1000,9 @@ def run(ctx: protocol_api.ProtocolContext):
 
         for dest in aw_wells:
             [pickup_height, col_change] = run.calc_height(
-                Prot_K, area_section_screwcap, volumen_r1_total)
+                reactivo_1, area_section_screwcap, volumen_r1_total)
 
-            run.move_vol_multichannel(reagent=Prot_K, source=tube_rack.wells("A6")[0],
+            run.move_vol_multichannel(reagent=reactivo_1, source=tube_rack.wells("A6")[0],
                                       dest=dest, vol=volumen_r1, air_gap_vol=air_gap_r1,
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
@@ -980,9 +1015,7 @@ def run(ctx: protocol_api.ProtocolContext):
     # STEP 2: Pause until the Bell is done
     ############################################################################
     if (run.next_step()):
-
         ctx.pause('Go to the bell to disable sample')
-        
         run.finish_step()
 
     ############################################################################
@@ -1002,10 +1035,10 @@ def run(ctx: protocol_api.ProtocolContext):
         
         for dest in aw_wells:
             [pickup_height, col_change] = run.calc_height(
-                Prot_K, area_section_screwcap, volumen_r1_total)
+                reactivo_1, area_section_screwcap, volumen_r1_total)
     
             run.pick_up()
-            run.move_vol_multichannel(reagent=MS2, source=tube_rack.wells("B6")[0],
+            run.move_vol_multichannel(reagent=reactivo_2, source=tube_rack.wells("B6")[0],
                                       dest=dest, vol=volumen_r1, air_gap_vol=air_gap_r1,
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
