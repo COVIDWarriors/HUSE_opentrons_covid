@@ -53,10 +53,10 @@ num_cols = math.ceil(NUM_SAMPLES/8)
 
 def run(ctx: protocol_api.ProtocolContext):
 
-
+    
+    
     # Init protocol run
     run = ProtocolRun(ctx)
-    ctx.comment("hola")
     # yo creo que este tiene que ser manual o sacarlo a otro robot
     run.addStep(description="Transfer A6 - To AW_PLATE Single")
     run.addStep(description="Wait until bell is done")
@@ -319,7 +319,7 @@ def run(ctx: protocol_api.ProtocolContext):
     # STEP 2: Pause until the Bell is done
     ############################################################################
     if (run.next_step()):
-        run.pause('Go to the bell to disable sample')
+        ctx.pause('Go to the bell to disable sample')
         run.finish_step()
 
     ############################################################################
@@ -328,7 +328,7 @@ def run(ctx: protocol_api.ProtocolContext):
     if (run.next_step()):
         ############################################################################
         # Light flash end of program
-        run.comment("this is not implemented yet")
+        ctx.comment("this is not implemented yet")
         run.finish_step()
 
     ############################################################################
@@ -354,7 +354,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
     run.log_steps_time()
     run.blink()
-    run.comment('Finished! \nMove plate to PCR')
+    ctx.comment('Finished! \nMove plate to PCR')
 
 ##################
 # Custom function
@@ -389,6 +389,9 @@ class Reagent:
         self.unused = []
         self.delay = delay
 
+
+def comment_2(ctx,comment):
+        ctx.comment(comment)
 
 class ProtocolRun:
     def __init__(self, ctx):
@@ -433,8 +436,7 @@ class ProtocolRun:
         return True
 
     def finish_step(self):
-        for c in robot.commands():
-            print(c)
+        
         end = datetime.now()
         time_taken = (end - self.start)
         self.comment('Step ' + str(self.step + 1) + ': ' +
@@ -535,12 +537,11 @@ class ProtocolRun:
     def comment(self, comment, add_hash=False):
         hash_string = '#######################################################'
         if not self.ctx.is_simulating():
-            self.ctx.comment("hola ")
             if (add_hash):
-                self.ctx.comment(hash_string)
-            self.ctx.comment(('{}').format(comment))
+                comment_2(self.ctx,hash_string)
+            comment_2(self.ctx,('{}').format(comment))
             if (add_hash):
-                self.ctx.comment(hash_string)
+                comment_2(self.ctx,hash_string)
         else:
             if (add_hash):
                 print(hash_string)
