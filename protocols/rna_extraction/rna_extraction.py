@@ -21,16 +21,17 @@ metadata = {
 }
 
 '''
-'technician': 'Toni',
+'technician': 'Toni,Matias',
 'date': '$date'
 '''
 # Defined variables
 ##################
 NUM_SAMPLES = 8
 
-steps = [2]  # Steps you want to execute
+steps = [3]  # Steps you want to execute
 
 volumen_r1 = 5
+
 
 volumen_r1_total = volumen_r1*NUM_SAMPLES
 air_gap_vol = 10
@@ -60,7 +61,7 @@ def run(ctx: protocol_api.ProtocolContext):
     # yo creo que este tiene que ser manual o sacarlo a otro robot
     run.addStep(description="Transfer A6 - To AW_PLATE Single")
     run.addStep(description="Wait until bell is done")
-    run.addStep(description="Transfer BBUIX 3 - 2 Multi")
+    run.addStep(description="Transfer BBUIX 3 - 2 Multi") # Not implemented yet
     run.addStep(description="Transfer B6 - To AW_PLATE Single")
 
     # execute avaliaible steps
@@ -76,6 +77,11 @@ def run(ctx: protocol_api.ProtocolContext):
     # Magnetic Beads Pool
     mag_beads_pool = ctx.load_labware(
         'nest_12_reservoir_15ml', 3)
+    mag_beads_multi = mag_beads_pool.rows()[0][:num_cols]
+
+     # setup up sample sources and destinations
+    aw_wells = aw_plate.wells()[: NUM_SAMPLES]
+    aw_wells_multi = aw_plate.rows()[0][:num_cols]
 
     # Wash Buffer Pool
     wb_pool = ctx.load_labware(
@@ -290,8 +296,7 @@ def run(ctx: protocol_api.ProtocolContext):
                       v_fondo=4 * math.pi * 4 ** 3 / 3
                       )
 
-    # setup up sample sources and destinations
-    aw_wells = aw_plate.wells()[: NUM_SAMPLES]
+   
     #elution_wells=elution_plate.wells()[: NUM_SAMPLES]
 
     ############################################################################
@@ -329,6 +334,19 @@ def run(ctx: protocol_api.ProtocolContext):
         ############################################################################
         # Light flash end of program
         run.comment("this is not implemented yet")
+        run.set_pip("left") # p300 multi
+        run.pick_up()
+        for s,d in zip(aw_wells_multi,mag_beads_multi):
+            run.move_vol_multichannel(reagent=Beads_PK, source=s,
+                                      dest=d, vol=150, air_gap_vol=air_gap_r1,
+                                      pickup_height=0, disp_height=-10,
+                                      blow_out=True, touch_tip=True, rinse=False)
+            run.change_tip()
+            run.move_vol_multichannel(reagent=Beads_PK, source=s,
+                                      dest=d, vol=125, air_gap_vol=air_gap_r1,
+                                      pickup_height=0, disp_height=-10,
+                                      blow_out=True, touch_tip=True, rinse=False)
+        run.drop_tip()
         run.finish_step()
 
     ############################################################################
@@ -424,7 +442,7 @@ class ProtocolRun:
         self.step_list[index]["Execute"] = value
 
     def next_step(self):
-        robot.clear_commands()
+        
         # print(self.step_list[self.step]['Execute'])
         if self.step_list[self.step]['Execute'] == False:
             self.step += 1
@@ -433,8 +451,7 @@ class ProtocolRun:
         return True
 
     def finish_step(self):
-        for c in robot.commands():
-            print(c)
+
         end = datetime.now()
         time_taken = (end - self.start)
         self.comment('Step ' + str(self.step + 1) + ': ' +
