@@ -16,19 +16,19 @@ metadata = {
     'protocolName': 'RNA Extraction Version 2',
     'author': 'Matias Bonet Fullana & Antoni Morla. based on: Malen Aguirregabiria,Aitor Gastaminza & José Luis Villanueva (jlvillanueva@clinic.cat)',
     'source': 'Hospital Son Espases Palma',
-    'apiLevel': '2.2',
+    'apiLevel': '2.3',
     'description': 'Protocol for Marter mix'
 }
 
 '''
-'technician': '$technician',
+'technician': 'Toni',
 'date': '$date'
 '''
 # Defined variables
 ##################
 NUM_SAMPLES = 8
 
-steps = []  # Steps you want to execute
+steps = [2]  # Steps you want to execute
 
 volumen_r1 = 5
 
@@ -36,7 +36,7 @@ volumen_r1_total = volumen_r1*NUM_SAMPLES
 air_gap_vol = 10
 air_gap_r1 = 0
 air_gap_sample = 0
-run_id = '$run_id'
+run_id = 'testing'
 
 
 # Tune variables
@@ -53,9 +53,10 @@ num_cols = math.ceil(NUM_SAMPLES/8)
 
 def run(ctx: protocol_api.ProtocolContext):
 
+
     # Init protocol run
     run = ProtocolRun(ctx)
-
+    ctx.comment("hola")
     # yo creo que este tiene que ser manual o sacarlo a otro robot
     run.addStep(description="Transfer A6 - To AW_PLATE Single")
     run.addStep(description="Wait until bell is done")
@@ -64,14 +65,13 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # execute avaliaible steps
     run.init_steps(steps)
-
     ##################################
     # Define desk
     moving_type = "biorad_96_wellplate_200ul_pcr"
 
     tube_rack = ctx.load_labware(
-        'opentrons_24_tuberack_nest_1.5ml_screwcap', '1')
-    aw_plate = ctx.load_labware(moving_type, '2')
+        'opentrons_24_tuberack_nest_1.5ml_screwcap', 1)
+    aw_plate = ctx.load_labware(moving_type, 2)
 
     # Magnetic Beads Pool
     mag_beads_pool = ctx.load_labware(
@@ -82,9 +82,9 @@ def run(ctx: protocol_api.ProtocolContext):
         'nest_12_reservoir_15mL', 4)
 
     # # Magnetic module plus NEST_Deep_well_reservoire
-    # mag_module=ctx.load_module('magnetic module', 7)
-    # mag_module.disengage()
-    # mag_wells=mag_module.load_labware(moving_type)
+    mag_module=ctx.load_module('magnetic module gen2', 7)
+    mag_module.disengage()
+    mag_wells=mag_module.load_labware(moving_type)
 
     # Ethanol Pool
     etoh_pool = ctx.load_labware(
@@ -92,7 +92,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Temperature module plus NEST_Deep_well_reservoire
     tempdeck = ctx.load_module('tempdeck', 10)
-    tuberack = tempdeck.load_labware(moving_type)
+    temp_well = tempdeck.load_labware(moving_type)
     # tempdeck.set_temperature(temperature)
 
     # Mount pippets and set racks
@@ -254,6 +254,23 @@ def run(ctx: protocol_api.ProtocolContext):
                          h_cono=4,
                          v_fondo=4 * math.pi * 4 ** 3 / 3
                          )
+    reactivo_2 = Reagent(name='Reactivo 1',
+                         num_wells=1,  # change with num samples
+                         delay=0,
+                         flow_rate_aspirate=3,  # Original 0.5
+                         flow_rate_dispense=3,  # Original 1
+                         flow_rate_aspirate_mix=15,
+                         flow_rate_dispense_mix=25,
+                         air_gap_vol_bottom=5,
+                         air_gap_vol_top=0,
+                         disposal_volume=1,
+                         rinse=False,
+                         max_volume_allowed=150,
+                         reagent_volume=50,
+                         reagent_reservoir_volume=volumen_r1_total,  
+                         h_cono=4,
+                         v_fondo=4 * math.pi * 4 ** 3 / 3
+                         )
 
     aw_well = Reagent(name='dw_plate well',
                       num_wells=1,  # change with num samples
@@ -283,14 +300,13 @@ def run(ctx: protocol_api.ProtocolContext):
     if (run.next_step()):
 
         run.set_pip("right")  # single 20
-
         run.pick_up()
 
         for dest in aw_wells:
             [pickup_height, col_change] = run.calc_height(
                 reactivo_1, area_section_screwcap, volumen_r1_total)
 
-            run.move_vol_multichannel(reagent=reactivo_1, source=tuberack.wells("A6")[0],
+            run.move_vol_multichannel(reagent=reactivo_1, source=tube_rack.wells("A6")[0],
                                       dest=dest, vol=volumen_r1, air_gap_vol=air_gap_r1,
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
@@ -320,19 +336,19 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################################################
     if (run.next_step()):
         run.set_pip("right")  # single 20
-        run.pick_up()
-
+        
         for dest in aw_wells:
             [pickup_height, col_change] = run.calc_height(
                 reactivo_1, area_section_screwcap, volumen_r1_total)
-
-            run.move_vol_multichannel(reagent=reactivo_1, source=tuberack.wells("B6")[0],
+    
+            run.pick_up()
+            run.move_vol_multichannel(reagent=reactivo_2, source=tube_rack.wells("B6")[0],
                                       dest=dest, vol=volumen_r1, air_gap_vol=air_gap_r1,
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
 
-        # If not in first step we need to change everytime
-        run.drop_tip()
+            # If not in first step we need to change everytime
+            run.drop_tip()
 
         run.finish_step()
 
@@ -519,11 +535,12 @@ class ProtocolRun:
     def comment(self, comment, add_hash=False):
         hash_string = '#######################################################'
         if not self.ctx.is_simulating():
+            self.ctx.comment("hola ")
             if (add_hash):
-                robot.comment(hash_string)
-            robot.comment(('{}').format(comment))
+                self.ctx.comment(hash_string)
+            self.ctx.comment(('{}').format(comment))
             if (add_hash):
-                robot.comment(hash_string)
+                self.ctx.comment(hash_string)
         else:
             if (add_hash):
                 print(hash_string)
@@ -535,7 +552,7 @@ class ProtocolRun:
         if not self.ctx.is_simulating():
             self.ctx.pause(comment)
         else:
-            input("%s\n Press any key to continue " % comment)
+            print("%s\n Press any key to continue " % comment)
 
     def move_vol_multichannel(self, reagent, source, dest, vol, air_gap_vol,
                               pickup_height, disp_height, x_offset=[0, 0],
@@ -726,6 +743,6 @@ class ProtocolRun:
                 row = ""
                 for step in self.step_list:
                     row = ('{}\t{}\t{}\t{}\t{}').format(
-                        row, step["Execution"], step["description"], step["wait_time"], step["execution_time"])
+                        row, step["Execute"], step["description"], step["wait_time"], step["execution_time"])
                     f.write(row + '\n')
             f.close()
