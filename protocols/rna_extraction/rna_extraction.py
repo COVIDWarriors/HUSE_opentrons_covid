@@ -26,29 +26,35 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES = 8
-
-steps = [2]  # Steps you want to execute
-
+NUM_SAMPLES = 16
+steps = []  # Steps you want to execute
 set_temp_on = False  # Do you want to start temperature module?
 temperature = 65  # Set temperature. It will be uesed if set_temp_on is set to True
 set_mag_on = False  # Do you want to start magnetic module?
 mag_height = 14  # Height needed for NEST deepwell in magnetic deck
 
+use_waits = True
+
+num_cols = math.ceil(NUM_SAMPLES/8)
 volumen_r1 = 5
 volumen_r1_total = volumen_r1*NUM_SAMPLES
+
+diameter_screwcap = 8.1  # Diameter of the screwcap
+volume_cone = 57  # Volume in ul that fit in the screwcap cone
+area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
+h_cone = (volume_cone * 3 / area_section_screwcap)
+
 
 air_gap_vol = 10
 air_gap_r1 = 0
 air_gap_sample = 0
 run_id = 'testing'
 
+
 ##################
 # Custom function
 ##################
 # Define Reagents as objects with their properties
-
-
 class Reagent:
     def __init__(self, name, flow_rate_aspirate, reagent_volume, reagent_reservoir_volume,
                  flow_rate_dispense, flow_rate_aspirate_mix, flow_rate_dispense_mix,
@@ -92,23 +98,26 @@ class ProtocolRun:
         self.selected_pip = "right"
         self.pips = {"right": {}, "left": {}}
 
-    def addStep(self, description, execute=False, wait_time=0):
+    def add_step(self, description, execute=False, wait_time=0):
         self.step_list.append(
-            {'Execute': execute, 'description': description, 'wait_time': wait_time})
+            {'Execute': execute, 'description': description, 'wait_time': wait_time, 'execution_time': 0})
 
     def init_steps(self, steps):
         if(len(steps) > 0):
             for index in steps:
                 if(index <= len(self.step_list)):
-                    self.setExecutionStep(index-1, True)
+                    self.set_execution_step(index-1, True)
                 else:
                     print("Step index out of range")
         else:
             for index, step in enumerate(self.step_list):
-                self.setExecutionStep(index, True)
+                self.set_execution_step(index, True)
 
-    def setExecutionStep(self, index, value):
+    def set_execution_step(self, index, value):
         self.step_list[index]["Execute"] = value
+
+    def get_current_step(self):
+        return self.step_list[self.step]
 
     def next_step(self):
         if self.step_list[self.step]['Execute'] == False:
@@ -118,13 +127,18 @@ class ProtocolRun:
         return True
 
     def finish_step(self):
-
+        if (self.get_current_step()["wait_time"] > 0 and use_waits):
+            self.ctx.delay(seconds=int(self.get_current_step()[
+                           "wait_time"]), msg=self.get_current_step()["description"])
+        if (self.get_current_step()["wait_time"] > 0 and not use_waits):
+            self.comment("We simulate a wait of:%s seconds" %
+                         self.get_current_step()["wait_time"])
         end = datetime.now()
         time_taken = (end - self.start)
         self.comment('Step ' + str(self.step + 1) + ': ' +
                      self.step_list[self.step]['description'] + ' took ' + str(time_taken), add_hash=True)
 
-        self.step_list[self.step]['Time'] = str(time_taken)
+        self.step_list[self.step]['execution_time'] = str(time_taken)
         self.step += 1
         self.log_steps_time()
 
@@ -140,12 +154,12 @@ class ProtocolRun:
                     f.write(row + '\n')
             f.close()
 
-    def mount_pip(self, position, type, tip_racks, capacity, multi=False):
+    def mount_pip(self, position, type, tip_racks, capacity, multi=False, size_tipracks=96):
         self.pips[position]["pip"] = self.ctx.load_instrument(
             type, mount=position, tip_racks=tip_racks)
         self.pips[position]["capacity"] = capacity
         self.pips[position]["count"] = 0
-        self.pips[position]["maxes"] = len(tip_racks)
+        self.pips[position]["maxes"] = len(tip_racks)*size_tipracks
         if(multi):
             self.pips[position]["increment_tips"] = 8
         else:
@@ -213,7 +227,7 @@ class ProtocolRun:
         if not self.ctx.is_simulating():
             if self.get_pip_count() == self.get_pip_maxes():
                 self.ctx.pause('Replace ' + str(pip.max_volume) + 'µl tipracks before \
-                resuming.')
+                    resuming.')
                 pip.reset_tipracks()
                 self.reset_pip_count()
 
@@ -233,10 +247,10 @@ class ProtocolRun:
         hash_string = '#######################################################'
         if not self.ctx.is_simulating():
             if (add_hash):
-                self.ctx.comment(self.ctx, hash_string)
-            comment_2(self.ctx, ('{}').format(comment))
+                self.ctx.comment(hash_string)
+            self.ctx.comment(('{}').format(comment))
             if (add_hash):
-                comment_2(self.ctx, hash_string)
+                self.ctx.comment(hash_string)
         else:
             if (add_hash):
                 print(hash_string)
@@ -382,23 +396,29 @@ class ProtocolRun:
 
     def calc_height(self, reagent, cross_section_area, aspirate_volume, min_height=0.5, extra_volume=30):
         # if support_selected == pcr_support.index[1] : --> refdefine height (calculate_heigh(self))
-        self.comment('Remaining volume ' + str(reagent.vol_well) +
-                     '< needed volume ' + str(aspirate_volume) + '?')
+        debug = False
+        if (debug):
+            self.comment('Remaining volume ' + str(reagent.vol_well) +
+                         '< needed volume ' + str(aspirate_volume) + '?')
 
         if reagent.vol_well < aspirate_volume + extra_volume:
             reagent.unused.append(reagent.vol_well)
-            self.comment('Next column should be picked')
-            self.comment('Previous to change: ' + str(reagent.col))
+            if (debug):
+                self.comment('Next column should be picked')
+                self.comment('Previous to change: ' + str(reagent.col))
             # column selector position; intialize to required number
             reagent.col = reagent.col + 1
-            self.comment(str('After change: ' + str(reagent.col)))
+            if (debug):
+                self.comment(str('After change: ' + str(reagent.col)))
             reagent.vol_well = reagent.vol_well_original
-            self.comment('New volume:' + str(reagent.vol_well))
+            if (debug):
+                self.comment('New volume:' + str(reagent.vol_well))
             height = (reagent.vol_well - aspirate_volume -
                       reagent.v_cono) / cross_section_area
             # - reagent.h_cono
             reagent.vol_well = reagent.vol_well - aspirate_volume
-            self.comment('Remaining volume:' + str(reagent.vol_well))
+            if (debug):
+                self.comment('Remaining volume:' + str(reagent.vol_well))
             if height < min_height:
                 height = min_height
             col_change = True
@@ -406,10 +426,12 @@ class ProtocolRun:
             height = (reagent.vol_well - aspirate_volume -
                       reagent.v_cono) / cross_section_area  # - reagent.h_cono
             reagent.vol_well = reagent.vol_well - aspirate_volume
-            self.comment('Calculated height is ' + str(height))
+            if (debug):
+                self.comment('Calculated height is ' + str(height))
             if height < min_height:
                 height = min_height
-            self.comment('Used height is ' + str(height))
+            if (debug):
+                self.comment('Used height is ' + str(height))
             col_change = False
         return height, col_change
 
@@ -437,56 +459,56 @@ def run(ctx: protocol_api.ProtocolContext):
     # Init protocol run
     run = ProtocolRun(ctx)
     # yo creo que este tiene que ser manual o sacarlo a otro robot
-    run.addStep(description="Transfer A6 - To AW_PLATE Single Slot1 -> Slot2")
-    run.addStep(description="Wait until bell is done")  # INTERACTION
-    run.addStep(description="Transfer BBUIX 3 - 2 Multi")
-    run.addStep(description="Transfer Beats - To AW_PLATE Multi")
-    run.addStep(
+    run.add_step(description="Transfer A6 - To AW_PLATE Single Slot1 -> Slot2")
+    run.add_step(description="Wait until bell is done")  # INTERACTION
+    run.add_step(description="Transfer BBUIX 3 - 2 Multi")
+    run.add_step(description="Transfer Beats - To AW_PLATE Multi")
+    run.add_step(
         description="Replace tips, empty trash, move Slot2 -> Slot 10")  # INTERACTION
 
-    run.addStep(description="65C Incubation", wait_time=5 * 60)  # 5 minutos
-    run.addStep(description="Transfer From temperature to magnet 485ul")
-    run.addStep(description="Magnetic on: 10 minutes", wait_time=10*60)
-    run.addStep(
+    run.add_step(description="65C Incubation", wait_time=5 * 60)  # 5 minutos
+    run.add_step(description="Transfer From temperature to magnet 485ul")
+    run.add_step(description="Magnetic on: 10 minutes", wait_time=10*60)
+    run.add_step(
         description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3")
-    run.addStep(description="Magnetic off")
+    run.add_step(description="Magnetic off")
 
-    run.addStep(
+    run.add_step(
         description="Replace tips, add WB, add ETOH, vaciar piscina y trash. Cambiar nuevo DW SLOT 10")  # INTERACTION
 
     # Add WB
-    run.addStep(description="Add 500ul de WB  a los beats Slot 4 - 7 ")
-    run.addStep(description="Magnetic on: 2 minutes", wait_time=2*60)
-    run.addStep(
+    run.add_step(description="Add 500ul de WB  a los beats Slot 4 - 7 ")
+    run.add_step(description="Magnetic on: 2 minutes", wait_time=2*60)
+    run.add_step(
         description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3")
-    run.addStep(description="Magnetic off")
+    run.add_step(description="Magnetic off")
 
     # Add ETOH First step
-    run.addStep(description="Add 500ul de etoh a los beats Slot 8 - 7 ")
-    run.addStep(description="Magnetic on: 2 minutes", wait_time=2*60)
-    run.addStep(
+    run.add_step(description="Add 500ul de etoh a los beats Slot 8 - 7 ")
+    run.add_step(description="Magnetic on: 2 minutes", wait_time=2*60)
+    run.add_step(
         description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3")
-    run.addStep(description="Magnetic off")
+    run.add_step(description="Magnetic off")
 
     # Add ETOH First step
-    run.addStep(description="Add 500ul de etoh a los beats Slot 8 - 7 ")
-    run.addStep(description="Magnetic on: 2 minutes", wait_time=2*60)
-    run.addStep(
+    run.add_step(description="Add 500ul de etoh a los beats Slot 8 - 7 ")
+    run.add_step(description="Magnetic on: 2 minutes", wait_time=2*60)
+    run.add_step(
         description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3")
-    run.addStep(description="Magnetic off")
+    run.add_step(description="Magnetic off")
 
     # Add ETOH Second step
-    run.addStep(description="Add 250ul de etoh a los beats Slot 8 - 7 ")
-    run.addStep(description="Magnetic on: 2 minutes", wait_time=2*60)
-    run.addStep(
+    run.add_step(description="Add 250ul de etoh a los beats Slot 8 - 7 ")
+    run.add_step(description="Magnetic on: 2 minutes", wait_time=2*60)
+    run.add_step(
         description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3")
-    run.addStep(description="Secar durante 10 minutos", wait_time=10 * 60)
-    run.addStep(description="Magnetic off")
-    run.addStep(
+    run.add_step(description="Secar durante 10 minutos", wait_time=10 * 60)
+    run.add_step(description="Magnetic off")
+    run.add_step(
         description="Add elution move to temperature same tip 4 -> 7 -> 10")
-    run.addStep(description="65C Incubation 10'", wait_time=10 * 60)
-    run.addStep(description="Move 50ul from temp to magnet 10-7")
-    run.addStep(description="Magnetic on: 3 minutes", wait_time=3 * 60)
+    run.add_step(description="65C Incubation 10'", wait_time=10 * 60)
+    run.add_step(description="Move 50ul from temp to magnet 10-7")
+    run.add_step(description="Magnetic on: 3 minutes", wait_time=3 * 60)
     #run.addStep(description="Move 50ul Magnet Final destination 7-> 2")
 
     # execute avaliaible steps
@@ -498,8 +520,9 @@ def run(ctx: protocol_api.ProtocolContext):
 
     tube_rack = ctx.load_labware(
         'opentrons_24_tuberack_nest_1.5ml_screwcap', 1)
+
     aw_plate = ctx.load_labware(moving_type, 2)
-    aw_wells = aw_plate.wells()[: NUM_SAMPLES]
+    aw_wells = aw_plate.wells()[:NUM_SAMPLES]
     aw_wells_multi = aw_plate.rows()[0][:num_cols]
 
     # Magnetic Beads Pool
@@ -532,13 +555,12 @@ def run(ctx: protocol_api.ProtocolContext):
     # Mount pippets and set racks
     # Tipracks20_multi
     tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 11)
-    tips300_1 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 5)
-    tips300_2 = ctx.load_labware('opentrons_96_filtertiprack_200uL', 6)
-    tips300_3 = ctx.load_labware('opentrons_96_filtertiprack_200uL', 9)
+    tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', "9")
+    tips300_1 = ctx.load_labware('opentrons_96_filtertiprack_200ul', "6")
 
     run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
     run.mount_left_pip('p300_multi_gen2', tip_racks=[
-                       tips300_1, tips300_2, tips300_3], capacity=300, multi=True)
+                       tips300, tips300_1], capacity=200, multi=True)
 
     Isopropanol = Reagent(name='Isopropanol',
                           flow_rate_aspirate=1,  # Original = 0.5
@@ -589,13 +611,12 @@ def run(ctx: protocol_api.ProtocolContext):
                        disposal_volume=1,
                        rinse=True,
                        max_volume_allowed=180,
-                       reagent_volume=500,
-                       reagent_reservoir_volume=NUM_SAMPLES * 500,  # 11920,
+                       reagent_volume=250,
+                       reagent_reservoir_volume=NUM_SAMPLES * 250 * 1.1,  # 11920,
                        # num_Wells max is 4,
-                       num_wells=math.ceil((NUM_SAMPLES + 5) * 500 / 13000),
+                       num_wells=num_cols,
                        h_cono=1.95,
-                       v_fondo=750,  # 1.95 * multi_well_rack_area / 2, #Prismatic
-                       tip_recycling='A2')
+                       v_fondo=750)
 
     SPR = Reagent(name='SPR',
                   flow_rate_aspirate=3,  # Original = 1
@@ -729,16 +750,16 @@ def run(ctx: protocol_api.ProtocolContext):
         # Light flash end of program
         run.set_pip("left")  # p300 multi
 
-        for s, d in zip(aw_wells_multi, mag_beads_wells_multi):
+        for source, destination in zip(aw_wells_multi, mag_beads_wells_multi):
             run.pick_up()
-            run.move_vol_multichannel(reagent=Beads_PK, source=s,
-                                      dest=d, vol=150, air_gap_vol=air_gap_r1,
+            run.move_vol_multichannel(reagent=Beads_PK, source=source,
+                                      dest=destination, vol=150, air_gap_vol=air_gap_r1,
                                       pickup_height=0, disp_height=-10,
                                       blow_out=True, touch_tip=True, rinse=False)
             run.change_tip()
-            run.move_vol_multichannel(reagent=Beads_PK, source=s,
-                                      dest=d, vol=125, air_gap_vol=air_gap_r1,
-                                      pickup_height=0, disp_height=-10,
+            run.move_vol_multichannel(reagent=Beads_PK, source=source,
+                                      dest=destination, vol=125, air_gap_vol=air_gap_r1,
+                                      pickup_height=1, disp_height=-5,
                                       blow_out=True, touch_tip=True, rinse=False)
             run.drop_tip()
 

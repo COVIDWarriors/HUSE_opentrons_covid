@@ -31,13 +31,9 @@ stop_termoblock = True
 # Defined variables
 ##################
 NUM_SAMPLES = 8
-<< << << < HEAD
+
 steps = []  # Steps you want to execute
 
-
-== == == =
-steps = [2, 3]  # Steps you want to execute
->>>>>> > 4e732885980fecf27fb39d0329552a797bf4ecf2
 air_gap_vol = 10
 air_gap_mmix = 0
 air_gap_sample = 0
@@ -371,7 +367,6 @@ def run(ctx: protocol_api.ProtocolContext):
             run.drop_tip()
 
         run.finish_step()
-
 
     ############################################################################
     # Light flash end of program
