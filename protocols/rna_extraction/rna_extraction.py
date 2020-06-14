@@ -562,44 +562,25 @@ def run(ctx: protocol_api.ProtocolContext):
     run.mount_left_pip('p300_multi_gen2', tip_racks=[
                        tips300, tips300_1], capacity=200, multi=True)
 
-    Isopropanol = Reagent(name='Isopropanol',
-                          flow_rate_aspirate=1,  # Original = 0.5
-                          flow_rate_dispense=1,  # Original = 1
-                          flow_rate_aspirate_mix=1,  # Liquid density very high, needs slow aspiration
-                          flow_rate_dispense_mix=1,  # Liquid density very high, needs slow dispensation
-                          air_gap_vol_bottom=5,
-                          air_gap_vol_top=0,
-                          disposal_volume=1,
-                          rinse=True,
-                          max_volume_allowed=180,
-                          reagent_volume=275,  # reagent volume needed per sample
-                          reagent_reservoir_volume=(
-                              NUM_SAMPLES + 5) * 275,  # 70000, #51648
-                          # num_Wells max is 4, 13000 is the reservoir max volume (eventhough reservoir allows 15000)
-                          num_wells=math.ceil((NUM_SAMPLES + 5) * 275 / 13000),
-                          h_cono=1.95,
-                          v_fondo=750
-                          )
-
     # Reagents and their characteristics
-    VHB = Reagent(name='VHB',
-                  flow_rate_aspirate=3,
-                  flow_rate_dispense=3,
-                  flow_rate_aspirate_mix=15,
-                  flow_rate_dispense_mix=25,
-                  air_gap_vol_bottom=5,
-                  air_gap_vol_top=0,
-                  disposal_volume=1,
-                  rinse=True,
-                  max_volume_allowed=180,
-                  reagent_volume=500,
-                  reagent_reservoir_volume=(
+    WB = Reagent(name='WB washing buffer',
+                 flow_rate_aspirate=3,
+                 flow_rate_dispense=3,
+                 flow_rate_aspirate_mix=15,
+                 flow_rate_dispense_mix=25,
+                 air_gap_vol_bottom=5,
+                 air_gap_vol_top=0,
+                 disposal_volume=1,
+                 rinse=True,
+                 max_volume_allowed=180,
+                 reagent_volume=500,
+                 reagent_reservoir_volume=(
                       NUM_SAMPLES + 5) * 500,  # 60000, #38400
-                  # num_Wells max is 4
-                  num_wells=math.ceil((NUM_SAMPLES + 5) * 500 / 13000),
-                  h_cono=1.95,
-                  v_fondo=750,  # 1.95 * multi_well_rack_area / 2, #Prismatic
-                  tip_recycling='A1')
+                 # num_Wells max is 4
+                 num_wells=math.ceil((NUM_SAMPLES + 5) * 500 / 13000),
+                 h_cono=1.95,
+                 v_fondo=750,  # 1.95 * multi_well_rack_area / 2, #Prismatic
+                 tip_recycling='A1')
 
     Beads_PK = Reagent(name='Magnetic beads+PK',
                        flow_rate_aspirate=1,
@@ -617,80 +598,6 @@ def run(ctx: protocol_api.ProtocolContext):
                        num_wells=num_cols,
                        h_cono=1.95,
                        v_fondo=750)
-
-    SPR = Reagent(name='SPR',
-                  flow_rate_aspirate=3,  # Original = 1
-                  flow_rate_dispense=3,  # Original = 1
-                  flow_rate_aspirate_mix=15,
-                  flow_rate_dispense_mix=25,
-                  air_gap_vol_bottom=5,
-                  air_gap_vol_top=0,
-                  disposal_volume=1,
-                  rinse=True,
-                  max_volume_allowed=180,
-                  reagent_volume=500,
-                  reagent_reservoir_volume=(
-                      NUM_SAMPLES + 5) * 500,  # 120000, #96000
-                  # num_Wells max is 4
-                  num_wells=math.ceil((NUM_SAMPLES + 5) * 500 / 13000),
-                  h_cono=1.95,
-                  v_fondo=750,  # 1.95 * multi_well_rack_area / 2, #Prismatic
-                  tip_recycling='A3')
-
-    Water = Reagent(name='Water',
-                    flow_rate_aspirate=3,
-                    flow_rate_dispense=3,
-                    flow_rate_aspirate_mix=15,
-                    flow_rate_dispense_mix=25,
-                    air_gap_vol_bottom=5,
-                    air_gap_vol_top=0,
-                    disposal_volume=1,
-                    rinse=False,
-                    max_volume_allowed=150,
-                    reagent_volume=50,
-                    reagent_reservoir_volume=(NUM_SAMPLES + 5) * 50,
-                    # math.ceil((NUM_SAMPLES + 5) * 50 / 13000), #num_Wells max is 1
-                    num_wells=1,
-                    h_cono=1.95,
-                    v_fondo=750)  # 1.95*multi_well_rack_area/2) #Prismatic
-
-    # Define wells interaction
-    # Reagents and their characteristics
-    Prot_K = Reagent(name='Proteinasa K',
-
-                     num_wells=1,  # change with num samples
-                     delay=0,
-                     flow_rate_aspirate=3,  # Original 0.5
-                     flow_rate_dispense=3,  # Original 1
-                     flow_rate_aspirate_mix=15,
-                     flow_rate_dispense_mix=25,
-                     air_gap_vol_bottom=5,
-                     air_gap_vol_top=0,
-                     disposal_volume=1,
-                     rinse=False,
-                     max_volume_allowed=150,
-                     reagent_volume=50,
-                     reagent_reservoir_volume=volumen_r1_total,  # 14800,
-                     h_cono=4,
-                     v_fondo=4 * math.pi * 4 ** 3 / 3
-                     )
-    MS2 = Reagent(name='Reactivo 1',
-                  num_wells=1,  # change with num samples
-                  delay=0,
-                  flow_rate_aspirate=3,  # Original 0.5
-                  flow_rate_dispense=3,  # Original 1
-                  flow_rate_aspirate_mix=15,
-                  flow_rate_dispense_mix=25,
-                  air_gap_vol_bottom=5,
-                  air_gap_vol_top=0,
-                  disposal_volume=1,
-                  rinse=False,
-                  max_volume_allowed=150,
-                  reagent_volume=50,
-                  reagent_reservoir_volume=volumen_r1_total,
-                  h_cono=4,
-                  v_fondo=4 * math.pi * 4 ** 3 / 3
-                  )
 
     aw_well = Reagent(name='dw_plate well',
                       num_wells=1,  # change with num samples
@@ -710,13 +617,28 @@ def run(ctx: protocol_api.ProtocolContext):
                       v_fondo=4 * math.pi * 4 ** 3 / 3
                       )
 
-    #elution_wells=elution_plate.wells()[: NUM_SAMPLES]
-
     ############################################################################
     # STEP 1: Transfer A6 - To AW_PLATE
     ############################################################################
     if (run.next_step()):
+        Prot_K = Reagent(name='Proteinasa K',
 
+                         num_wells=1,  # change with num samples
+                         delay=0,
+                         flow_rate_aspirate=3,  # Original 0.5
+                         flow_rate_dispense=3,  # Original 1
+                         flow_rate_aspirate_mix=15,
+                         flow_rate_dispense_mix=25,
+                         air_gap_vol_bottom=5,
+                         air_gap_vol_top=0,
+                         disposal_volume=1,
+                         rinse=False,
+                         max_volume_allowed=150,
+                         reagent_volume=50,
+                         reagent_reservoir_volume=volumen_r1_total,  # 14800,
+                         h_cono=4,
+                         v_fondo=4 * math.pi * 4 ** 3 / 3
+                         )
         run.set_pip("right")  # single 20
         run.pick_up()
 
@@ -743,7 +665,7 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 3: Slot 3 -2 BBUIX AW
+    # STEP 3: Slot 3 -2 beats_PK AW
     ############################################################################
     if (run.next_step()):
         ############################################################################
