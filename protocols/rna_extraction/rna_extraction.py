@@ -26,8 +26,8 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES = 16
-steps = []  # Steps you want to execute
+NUM_SAMPLES = 8
+steps = [5]  # Steps you want to execute
 set_temp_on = False  # Do you want to start temperature module?
 temperature = 65  # Set temperature. It will be uesed if set_temp_on is set to True
 set_mag_on = False  # Do you want to start magnetic module?
@@ -36,9 +36,6 @@ mag_height = 14  # Height needed for NEST deepwell in magnetic deck
 use_waits = True
 
 num_cols = math.ceil(NUM_SAMPLES/8)
-
-volumen_r1 = 5
-volumen_r1_total = volumen_r1*NUM_SAMPLES
 
 diameter_screwcap = 8.1  # Diameter of the screwcap
 volume_cone = 57  # Volume in ul that fit in the screwcap cone
@@ -60,7 +57,7 @@ class Reagent:
     def __init__(self, name, flow_rate_aspirate, reagent_volume, reagent_reservoir_volume,
                  flow_rate_dispense, flow_rate_aspirate_mix, flow_rate_dispense_mix,
                  air_gap_vol_bottom, air_gap_vol_top, disposal_volume,  max_volume_allowed,
-                 num_wells, h_cono, v_fondo, rinse=False, delay=0, tip_recycling='none'):
+                 num_wells, h_cono, v_fondo, area_section_screwcap = 8.254,rinse=False, delay=0, tip_recycling='none'):
         self.name = name
         self.flow_rate_aspirate = flow_rate_aspirate
         self.flow_rate_dispense = flow_rate_dispense
@@ -82,6 +79,7 @@ class Reagent:
         self.vol_well = self.vol_well_original
         self.unused = []
         self.delay = delay
+        self.area_section_screwcap = area_section_screwcap
 
 
 class ProtocolRun:
@@ -280,7 +278,7 @@ class ProtocolRun:
         pip = self.get_current_pip()
         # Rinse before aspirating
         if rinse == True:
-            run.custom_mix(reagent, location=source, vol=vol,
+            self.custom_mix(reagent, location=source, vol=vol,
                            rounds=2, blow_out=True, mix_height=0,
                            x_offset=x_offset)
         # SOURCE
@@ -395,12 +393,15 @@ class ProtocolRun:
         if post_airgap == True:
             pip.dispense(post_airgap_vol, location.top(z=5))
 
-    def calc_height(self, reagent, cross_section_area, aspirate_volume, min_height=0.5, extra_volume=30):
+    def calc_height(self, reagent, min_height=0.5, extra_volume=30):
         # if support_selected == pcr_support.index[1] : --> refdefine height (calculate_heigh(self))
         debug = False
         if (debug):
             self.comment('Remaining volume ' + str(reagent.vol_well) +
                          '< needed volume ' + str(aspirate_volume) + '?')
+        
+        cross_section_area= reagent.area_section_screwcap
+        aspirate_volume = reagent.disposal_volume        
 
         if reagent.vol_well < aspirate_volume + extra_volume:
             reagent.unused.append(reagent.vol_well)
@@ -519,9 +520,11 @@ def run(ctx: protocol_api.ProtocolContext):
     # Define desk
     moving_type = "biorad_96_wellplate_200ul_pcr"
 
+    # Tube rack
     tube_rack = ctx.load_labware(
         'opentrons_24_tuberack_nest_1.5ml_screwcap', 1)
 
+    # Destination plate SLOT 2
     aw_plate = ctx.load_labware(moving_type, 2)
     aw_wells = aw_plate.wells()[:NUM_SAMPLES]
     aw_wells_multi = aw_plate.rows()[0][:num_cols]
@@ -551,17 +554,18 @@ def run(ctx: protocol_api.ProtocolContext):
     # Temperature module plus NEST_Deep_well_reservoire
     tempdeck = ctx.load_module('tempdeck', 10)
     temp_plate = tempdeck.load_labware(moving_type)
-    temp_plate_wells_multi = mag_beads_pool.rows()[0][:num_cols]
+    temp_wells_multi = mag_beads_pool.rows()[0][:num_cols]
 
     # Mount pippets and set racks
     # Tipracks20_multi
     tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 11)
-    tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', "9")
-    tips300_1 = ctx.load_labware('opentrons_96_filtertiprack_200ul', "6")
+    tips300_9 = ctx.load_labware('opentrons_96_filtertiprack_200ul', "9")
+    tips300_6 = ctx.load_labware('opentrons_96_filtertiprack_200ul', "6")
+    tips300_5 = ctx.load_labware('opentrons_96_filtertiprack_200ul', "5")
 
     run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
     run.mount_left_pip('p300_multi_gen2', tip_racks=[
-                       tips300, tips300_1], capacity=200, multi=True)
+                       tips300_9, tips300_6,tips300_5], capacity=200, multi=True)
 
     # Reagents and their characteristics
     WB = Reagent(name='WB washing buffer',
@@ -572,7 +576,6 @@ def run(ctx: protocol_api.ProtocolContext):
                  air_gap_vol_bottom=5,
                  air_gap_vol_top=0,
                  disposal_volume=1,
-                 rinse=True,
                  max_volume_allowed=180,
                  reagent_volume=500,
                  reagent_reservoir_volume=(
@@ -583,22 +586,6 @@ def run(ctx: protocol_api.ProtocolContext):
                  v_fondo=750,  # 1.95 * multi_well_rack_area / 2, #Prismatic
                  tip_recycling='A1')
 
-    Beads_PK = Reagent(name='Magnetic beads+PK',
-                       flow_rate_aspirate=1,
-                       flow_rate_dispense=1.5,
-                       flow_rate_aspirate_mix=1.5,
-                       flow_rate_dispense_mix=5,
-                       air_gap_vol_bottom=5,
-                       air_gap_vol_top=0,
-                       disposal_volume=1,
-                       rinse=True,
-                       max_volume_allowed=180,
-                       reagent_volume=250,
-                       reagent_reservoir_volume=NUM_SAMPLES * 250 * 1.1,  # 11920,
-                       # num_Wells max is 4,
-                       num_wells=num_cols,
-                       h_cono=1.95,
-                       v_fondo=750)
 
     aw_well = Reagent(name='dw_plate well',
                       num_wells=1,  # change with num samples
@@ -610,10 +597,9 @@ def run(ctx: protocol_api.ProtocolContext):
                       air_gap_vol_bottom=5,
                       air_gap_vol_top=0,
                       disposal_volume=1,
-                      rinse=False,
                       max_volume_allowed=150,
                       reagent_volume=50,
-                      reagent_reservoir_volume=volumen_r1_total,  # 14800,
+                      reagent_reservoir_volume=150,
                       h_cono=4,
                       v_fondo=4 * math.pi * 4 ** 3 / 3
                       )
@@ -622,8 +608,10 @@ def run(ctx: protocol_api.ProtocolContext):
     # STEP 1: Transfer A6 - To AW_PLATE
     ############################################################################
     if (run.next_step()):
-        Prot_K = Reagent(name='Proteinasa K',
-
+        run.set_pip("right")  # single 20
+        volumen_move = 5
+        source = tube_rack.wells("A6")[0]
+        liquid = Reagent(name='Proteinasa K',
                          num_wells=1,  # change with num samples
                          delay=0,
                          flow_rate_aspirate=3,  # Original 0.5
@@ -632,27 +620,27 @@ def run(ctx: protocol_api.ProtocolContext):
                          flow_rate_dispense_mix=25,
                          air_gap_vol_bottom=5,
                          air_gap_vol_top=0,
-                         disposal_volume=1,
-                         rinse=False,
+                         disposal_volume=volumen_move,
+                         reagent_volume=volumen_move*NUM_SAMPLES,
                          max_volume_allowed=150,
-                         reagent_volume=50,
-                         reagent_reservoir_volume=volumen_r1_total,  # 14800,
+                         reagent_reservoir_volume=volumen_move*NUM_SAMPLES,  # 14800,
                          h_cono=4,
-                         v_fondo=4 * math.pi * 4 ** 3 / 3
+                         v_fondo=4 * math.pi * 4 ** 3 / 3,
+                         area_section_screwcap = (np.pi * 8.25**2) / 4
                          )
-        run.set_pip("right")  # single 20
+
+
+        
         run.pick_up()
-
         for dest in aw_wells:
-            [pickup_height, col_change] = run.calc_height(
-                Prot_K, area_section_screwcap, volumen_r1_total)
+            [pickup_height, col_change] = run.calc_height(liquid)
 
-            run.move_vol_multichannel(reagent=Prot_K, source=tube_rack.wells("A6")[0],
-                                      dest=dest, vol=volumen_r1, air_gap_vol=air_gap_r1,
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=dest, vol=volumen_move, air_gap_vol=air_gap_r1,
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
 
-        # If not in first step we need to change everytime
+        
         run.drop_tip()
         run.finish_step()
 
@@ -660,7 +648,7 @@ def run(ctx: protocol_api.ProtocolContext):
     # STEP 2: Pause until the hood is done
     ############################################################################
     if (run.next_step()):
-
+        run.blink()
         ctx.pause('Go to the hood to disable sample')
 
         run.finish_step()
@@ -672,18 +660,36 @@ def run(ctx: protocol_api.ProtocolContext):
         ############################################################################
         # Light flash end of program
         run.set_pip("left")  # p300 multi
+         
+        liquid = Reagent(name='Magnetic beads',
+                       flow_rate_aspirate=1,
+                       flow_rate_dispense=1.5,
+                       flow_rate_aspirate_mix=1.5,
+                       flow_rate_dispense_mix=5,
+                       air_gap_vol_bottom=5,
+                       air_gap_vol_top=0,
+                       disposal_volume=275,
+                       rinse=True,
+                       max_volume_allowed=180,
+                       reagent_volume=250,
+                       reagent_reservoir_volume=NUM_SAMPLES * 250 * 1.1,  
+                       num_wells=num_cols,
+                       h_cono=1.95,
+                       v_fondo=750)
+        air_gap_vol = 3
+        disposal_height = -5
+        pickup_height = 1
 
         for source, destination in zip(aw_wells_multi, mag_beads_wells_multi):
             run.pick_up()
-            run.move_vol_multichannel(reagent=Beads_PK, source=source,
-                                      dest=destination, vol=150, air_gap_vol=air_gap_r1,
-                                      pickup_height=0, disp_height=-10,
-                                      blow_out=True, touch_tip=True, rinse=False)
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=150, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height,
+                                      rinse=True)
             run.change_tip()
-            run.move_vol_multichannel(reagent=Beads_PK, source=source,
-                                      dest=destination, vol=125, air_gap_vol=air_gap_r1,
-                                      pickup_height=1, disp_height=-5,
-                                      blow_out=True, touch_tip=True, rinse=False)
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=125, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height,rinse=True)
             run.drop_tip()
 
         run.finish_step()
@@ -692,27 +698,73 @@ def run(ctx: protocol_api.ProtocolContext):
     # STEP 4: Transfer Beats - To AW_PLATE
     ############################################################################
     if (run.next_step()):
+        
         run.set_pip("right")  # single 20
-
+        volumen_move = 5
+        source = tube_rack.wells("B6")[0]
+        liquid = Reagent(name='MS2',
+                         num_wells=1,  # change with num samples
+                         delay=0,
+                         flow_rate_aspirate=3,  # Original 0.5
+                         flow_rate_dispense=3,  # Original 1
+                         flow_rate_aspirate_mix=15,
+                         flow_rate_dispense_mix=25,
+                         air_gap_vol_bottom=5,
+                         air_gap_vol_top=0,
+                         disposal_volume=volumen_move,
+                         reagent_volume=volumen_move*NUM_SAMPLES,
+                         max_volume_allowed=150,
+                         reagent_reservoir_volume=volumen_move*NUM_SAMPLES,  # 14800,
+                         h_cono=4,
+                         v_fondo=4 * math.pi * 4 ** 3 / 3,
+                         area_section_screwcap = (np.pi * 8.25**2) / 4
+                         )
+       
+        
         for dest in aw_wells:
-            [pickup_height, col_change] = run.calc_height(
-                Prot_K, area_section_screwcap, volumen_r1_total)
-
             run.pick_up()
-            run.move_vol_multichannel(reagent=Prot_K, source=tube_rack.wells("B6")[0],
-                                      dest=dest, vol=volumen_r1, air_gap_vol=air_gap_r1,
+            [pickup_height, col_change] = run.calc_height(liquid)
+
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=dest, vol=volumen_move, air_gap_vol=air_gap_r1,
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
 
-            # If not in first step we need to change everytime
             run.drop_tip()
 
         run.finish_step()
 
     ############################################################################
-    # STEP 5: Pause until the Bell is done
+    # STEP 5: Mix and Pause to replace
     ############################################################################
     if (run.next_step()):
+        run.set_pip("left")
+        liquid = Reagent(name='PK+Beads+MS2 Mix',
+                         num_wells=1,  # change with num samples
+                         delay=0,
+                         flow_rate_aspirate=3,  # Original 0.5
+                         flow_rate_dispense=3,  # Original 1
+                         flow_rate_aspirate_mix=15,
+                         flow_rate_dispense_mix=25,
+                         air_gap_vol_bottom=5,
+                         air_gap_vol_top=0,
+                         disposal_volume=10,
+                         reagent_volume=10,
+                         max_volume_allowed=500,
+                         rinse=False,
+                         reagent_reservoir_volume=10*NUM_SAMPLES, 
+                         h_cono=4,
+                         v_fondo=4 * math.pi * 4 ** 3 / 3,
+                         area_section_screwcap = (np.pi * 8.25**2) / 4
+                         )
+
+        for source in aw_wells_multi:
+            run.pick_up()
+            run.custom_mix(liquid, location=source, vol=100,
+                           rounds=10, blow_out=True, mix_height=0)
+            run.drop_tip()
+
+        run.blink()
         ctx.pause('Replace tips, empty trash, move Slot2 -> Slot 10')
         run.finish_step()
 
@@ -730,15 +782,42 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################################################
     if (run.next_step()):
         
-        run.set_pip("left")  # p300 multi
-        for s, d in zip(temp_plate_wells_multi, mag_wells_multi):
-            # Replace this
+        run.set_pip("left")  # p300 multi 
+        liquid = Reagent(name='MIX_HOT',
+                       flow_rate_aspirate=1,
+                       flow_rate_dispense=1.5,
+                       flow_rate_aspirate_mix=1.5,
+                       flow_rate_dispense_mix=5,
+                       air_gap_vol_bottom=5,
+                       air_gap_vol_top=0,
+                       disposal_volume=485,
+                       rinse=True,
+                       max_volume_allowed=500,#No aplica
+                       reagent_volume=0, #No aplica
+                       reagent_reservoir_volume=NUM_SAMPLES * 250 * 1.1,  #No aplica
+                       num_wells=num_cols, # multi
+                       h_cono=1.95,
+                       v_fondo=750)
+
+        air_gap_vol = 3
+        disposal_height = -5
+        pickup_height = 1
+
+        for source, destination in zip(temp_wells_multi, mag_beads_wells_multi):
             run.pick_up()
-            run.move_vol_multichannel(reagent=Beads_PK, source=s,
-                                      dest=d, vol=150, air_gap_vol=air_gap_r1,
-                                      pickup_height=0, disp_height=-10,
-                                      blow_out=True, touch_tip=True, rinse=False)
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=175, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height,
+                                      rinse=True)
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=175, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height,
+                                      rinse=True)
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=135, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height,rinse=True)
             run.drop_tip()
+
         run.finish_step()
 
     # Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3
