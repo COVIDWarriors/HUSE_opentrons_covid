@@ -465,24 +465,19 @@ def run(ctx: protocol_api.ProtocolContext):
     run.add_step(description="Wait until bell is done")  # INTERACTION 2
     run.add_step(description="Transfer BBUIX 3 - 2 Multi") # 3
     run.add_step(description="Transfer Beats - To AW_PLATE Multi")# 4
-    run.add_step(
-        description="Replace tips, empty trash, move Slot2 -> Slot 10")  # INTERACTION 5
-
+    run.add_step(description="Replace tips, empty trash, move Slot2 -> Slot 10")  # INTERACTION 5
     run.add_step(description="65C Incubation", wait_time=5 * 60)  # 5 minutos 6
     run.add_step(description="Transfer From temperature to magnet 485ul") # 7
     run.add_step(description="Magnetic on: 10 minutes", wait_time=10) #10*60 8
-    run.add_step(
-        description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3") # 9
+    run.add_step(description="Extraer liquido no beads. Slot 7 - Piscina Slot 3") # 9
     run.add_step(description="Magnetic off") # 10
-
     run.add_step(
         description="Replace tips, add WB, add ETOH, vaciar piscina y trash. Cambiar nuevo DW SLOT 10")  # INTERACTION 11
 
     # Add WB
     run.add_step(description="Add 500ul de WB  a los beats Slot 4 - 7 ") # 12
     run.add_step(description="Magnetic on: 2 minutes", wait_time=2 ) # 2*60 13
-    run.add_step(
-        description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3") # 14
+    run.add_step(description="Extraer liquido no beats. Slot 7 - Piscina Slot 3") # 14
     run.add_step(description="Magnetic off") # 15
 
     # Add ETOH First step
@@ -491,27 +486,19 @@ def run(ctx: protocol_api.ProtocolContext):
     run.add_step(
         description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3") # 18
     run.add_step(description="Magnetic off") # 19
-
-    # Add ETOH First step
-    run.add_step(description="Add 500ul de etoh a los beats Slot 8 - 7 ") # 20
-    run.add_step(description="Magnetic on: 2 minutes", wait_time=2) #2*60 21
+    # Add ETOH Second step
+    run.add_step(description="Add 250ul de etoh a los beats Slot 8 - 7 ") # 20
+    run.add_step(description="Magnetic on: 2 minutes", wait_time=10)# 2*60 21
     run.add_step(
         description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3") # 22
-    run.add_step(description="Magnetic off") # 23
-
-    # Add ETOH Second step
-    run.add_step(description="Add 250ul de etoh a los beats Slot 8 - 7 ") # 24
-    run.add_step(description="Magnetic on: 2 minutes", wait_time=10)# 2*60 25
+    run.add_step(description="Secar durante 10 minutos", wait_time=10) #10 * 60 23
+    run.add_step(description="Magnetic off") #24
     run.add_step(
-        description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3") # 25
-    run.add_step(description="Secar durante 10 minutos", wait_time=10) #10 * 60 26
-    run.add_step(description="Magnetic off") #27
-    run.add_step(
-        description="Add elution move to temperature same tip 4 -> 7 -> 10") # 28
-    run.add_step(description="65C Incubation 10'", wait_time=10) # 10 * 60 # 29
-    run.add_step(description="Move 50ul from temp to magnet 10-7") # 30
-    run.add_step(description="Magnetic on: 3 minutes", wait_time=3 * 60) # 3 * 60 31
-    run.addStep(description="Move 50ul Magnet Final destination 7-> 2") # 32
+        description="Add elution move to temperature same tip 4 -> 7 -> 10") # 25
+    run.add_step(description="65C Incubation 10'", wait_time=10) # 10 * 60 # 26
+    run.add_step(description="Move 50ul from temp to magnet 10-7") # 27
+    run.add_step(description="Magnetic on: 3 minutes", wait_time=3 * 60) # 3 * 60 28
+    run.addStep(description="Move 50ul Magnet Final destination 7-> 2") # 29
 
     # execute avaliaible steps
     run.init_steps(steps)
@@ -1075,14 +1062,21 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 23: Magnet off
+    # STEP 23: Secar durante 10 minutos
+    ############################################################################
+    if (run.next_step()):
+        move_magnet_to_trash(move_vol_steps=2)
+        run.finish_step()
+
+    ############################################################################
+    # STEP 24: Magnet off
     ############################################################################
     if (run.next_step()):
         magdeck.disengage()
         run.finish_step()
 
     ############################################################################
-    # STEP 24: Add elution move to temperature same tip 4 -> 7 -> 10
+    # STEP 25: Add elution move to temperature same tip 4 -> 7 -> 10
     ############################################################################
     #Used to move from temp to magnet and from magnet to destionation
     elu_beads = Reagent(name='BitsToHot',
@@ -1100,9 +1094,7 @@ def run(ctx: protocol_api.ProtocolContext):
                        num_wells=num_cols, # multi
                        h_cono=1.95,
                        v_fondo=750)
-    air_gap_vol = 3
-    disposal_height = -5
-    pickup_height = 1
+    
 
     if (run.next_step()):
         # to liquid types
@@ -1122,6 +1114,8 @@ def run(ctx: protocol_api.ProtocolContext):
                        h_cono=1.95,
                        v_fondo=750)
         air_gap_vol = 3
+        disposal_height = -5
+        pickup_height = 1
         for source,dest_source,destination in zip(wb_wells_multi,mag_wells_multi,temp_wells_multi):
             run.pick_up()
             run.move_vol_multichannel(reagent=elution, source=source,
@@ -1143,7 +1137,7 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 25: Incubation at 65ºC
+    # STEP 26: Incubation at 65ºC
     ############################################################################
     if (run.next_step()):
         if (set_temp_on):
@@ -1151,13 +1145,13 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 26: Dejar secar 10 wait defined in the step
+    # STEP 27: Dejar secar 10 wait defined in the step
     ############################################################################
     if (run.next_step()):
         run.finish_step()
         
     ############################################################################
-    # STEP 27: Move from temp to magnet
+    # STEP 28: Move from temp to magnet
     ############################################################################
     if (run.next_step()):
         result = Reagent(name='Elution+magnets',
@@ -1176,7 +1170,7 @@ def run(ctx: protocol_api.ProtocolContext):
                        h_cono=1.95,
                        v_fondo=750)
 
-        for source,destination in zip(mag_wells_multi,aw_wells_multi):
+        for source,destination in zip(temp_wells_multi,mag_wells_multi):
             run.pick_up()
             run.move_vol_multichannel(reagent=result, source=source,
                                       dest=destination, vol=1, air_gap_vol=air_gap_vol,
@@ -1187,7 +1181,7 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 28: Magnet on 3 minutos
+    # STEP 29: Magnet on 3 minutos
     ############################################################################
     if (run.next_step()):
         if (set_mag_on):
@@ -1195,7 +1189,7 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 29: Move from magnet to final output slot 2
+    # STEP 30: Move from magnet to final output slot 2
     ############################################################################
     if (run.next_step()):
         result = Reagent(name='Elution-magnets',
