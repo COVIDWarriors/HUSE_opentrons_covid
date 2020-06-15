@@ -14,10 +14,10 @@ import csv
 # metadata
 metadata = {
     'protocolName': 'RNA Extraction Version 2',
-    'author': 'Matias Bonet Fullana & Antoni Morla. based on: Malen Aguirregabiria,Aitor Gastaminza & José Luis Villanueva (jlvillanueva@clinic.cat)',
+    'author': 'Matias Bonet & Antoni Morla. based on: Malen Aguirregabiria,Aitor Gastaminza & José Luis Villanueva (jlvillanueva@clinic.cat)',
     'source': 'Hospital Son Espases Palma',
     'apiLevel': '2.3',
-    'description': 'Protocol for Marter mix'
+    'description': 'Protocol for rna extraction'
 }
 
 '''
@@ -36,6 +36,7 @@ mag_height = 14  # Height needed for NEST deepwell in magnetic deck
 use_waits = True
 
 num_cols = math.ceil(NUM_SAMPLES/8)
+
 volumen_r1 = 5
 volumen_r1_total = volumen_r1*NUM_SAMPLES
 
@@ -656,11 +657,11 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 2: Pause until the Bell is done
+    # STEP 2: Pause until the hood is done
     ############################################################################
     if (run.next_step()):
 
-        ctx.pause('Go to the bell to disable sample')
+        ctx.pause('Go to the hood to disable sample')
 
         run.finish_step()
 
@@ -698,7 +699,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 Prot_K, area_section_screwcap, volumen_r1_total)
 
             run.pick_up()
-            run.move_vol_multichannel(reagent=MS2, source=tube_rack.wells("B6")[0],
+            run.move_vol_multichannel(reagent=Prot_K, source=tube_rack.wells("B6")[0],
                                       dest=dest, vol=volumen_r1, air_gap_vol=air_gap_r1,
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
@@ -722,12 +723,13 @@ def run(ctx: protocol_api.ProtocolContext):
         if (set_temp_on):
             tempdeck.set_temperature(temperature)
         run.finish_step()
+        tempdeck.deactivate()
 
     ############################################################################
     # STEP 7: Transfer From temperature to magnet 485ul
     ############################################################################
     if (run.next_step()):
-
+        
         run.set_pip("left")  # p300 multi
         for s, d in zip(temp_plate_wells_multi, mag_wells_multi):
             # Replace this
@@ -798,21 +800,6 @@ def run(ctx: protocol_api.ProtocolContext):
             run.drop_tip()
         run.finish_step()
 
-    ############################################################################
-    # STEP 12: Add 500ul de WB a los bits 4 - 7
-    ############################################################################
-    if (run.next_step()):
-
-        run.set_pip("left")  # p300 multi
-        for s, d in zip(temp_plate_wells_multi, mag_wells_multi):
-            # Replace this
-            run.pick_up()
-            run.move_vol_multichannel(reagent=Beads_PK, source=s,
-                                      dest=d, vol=150, air_gap_vol=air_gap_r1,
-                                      pickup_height=0, disp_height=-10,
-                                      blow_out=True, touch_tip=True, rinse=False)
-            run.drop_tip()
-        run.finish_step()
 
     ############################################################################
     # STEP 13: Magnet on 10 minutos
@@ -926,11 +913,27 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
+    # STEP 26: Move from temp to magnet
+    ############################################################################
+    if (run.next_step()):
+        if (set_temp_on):
+            tempdeck.set_temperature(temperature)
+        run.finish_step()
+
+    ############################################################################
     # STEP 26: Magnet on 3 minutos
     ############################################################################
     if (run.next_step()):
         if (set_mag_on):
             magdeck.engage(height=mag_height)
+        run.finish_step()
+
+    ############################################################################
+    # STEP 27: Move from magnet to final output slot 2
+    ############################################################################
+    if (run.next_step()):
+        if (set_temp_on):
+            tempdeck.set_temperature(temperature)
         run.finish_step()
 
     run.log_steps_time()
