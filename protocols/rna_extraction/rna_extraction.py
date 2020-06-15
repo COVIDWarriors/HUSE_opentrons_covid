@@ -27,7 +27,7 @@ metadata = {
 # Defined variables
 ##################
 NUM_SAMPLES = 8
-steps = [5]  # Steps you want to execute
+steps = [8,9,10]  # Steps you want to execute
 set_temp_on = False  # Do you want to start temperature module?
 temperature = 65  # Set temperature. It will be uesed if set_temp_on is set to True
 set_mag_on = False  # Do you want to start magnetic module?
@@ -470,7 +470,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
     run.add_step(description="65C Incubation", wait_time=5 * 60)  # 5 minutos
     run.add_step(description="Transfer From temperature to magnet 485ul")
-    run.add_step(description="Magnetic on: 10 minutes", wait_time=10*60)
+    run.add_step(description="Magnetic on: 10 minutes", wait_time=10) #10*60
     run.add_step(
         description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3")
     run.add_step(description="Magnetic off")
@@ -480,37 +480,37 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Add WB
     run.add_step(description="Add 500ul de WB  a los beats Slot 4 - 7 ")
-    run.add_step(description="Magnetic on: 2 minutes", wait_time=2*60)
+    run.add_step(description="Magnetic on: 2 minutes", wait_time=2 ) # 2*60
     run.add_step(
         description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3")
     run.add_step(description="Magnetic off")
 
     # Add ETOH First step
     run.add_step(description="Add 500ul de etoh a los beats Slot 8 - 7 ")
-    run.add_step(description="Magnetic on: 2 minutes", wait_time=2*60)
+    run.add_step(description="Magnetic on: 2 minutes", wait_time=2) #2*60
     run.add_step(
         description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3")
     run.add_step(description="Magnetic off")
 
     # Add ETOH First step
     run.add_step(description="Add 500ul de etoh a los beats Slot 8 - 7 ")
-    run.add_step(description="Magnetic on: 2 minutes", wait_time=2*60)
+    run.add_step(description="Magnetic on: 2 minutes", wait_time=2) #2*60
     run.add_step(
         description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3")
     run.add_step(description="Magnetic off")
 
     # Add ETOH Second step
     run.add_step(description="Add 250ul de etoh a los beats Slot 8 - 7 ")
-    run.add_step(description="Magnetic on: 2 minutes", wait_time=2*60)
+    run.add_step(description="Magnetic on: 2 minutes", wait_time=10)# 2*60
     run.add_step(
         description="Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3")
-    run.add_step(description="Secar durante 10 minutos", wait_time=10 * 60)
+    run.add_step(description="Secar durante 10 minutos", wait_time=10) #10 * 60
     run.add_step(description="Magnetic off")
     run.add_step(
         description="Add elution move to temperature same tip 4 -> 7 -> 10")
-    run.add_step(description="65C Incubation 10'", wait_time=10 * 60)
+    run.add_step(description="65C Incubation 10'", wait_time=10) # 10 * 60
     run.add_step(description="Move 50ul from temp to magnet 10-7")
-    run.add_step(description="Magnetic on: 3 minutes", wait_time=3 * 60)
+    run.add_step(description="Magnetic on: 3 minutes", wait_time=3 * 60) # 3 * 60
     #run.addStep(description="Move 50ul Magnet Final destination 7-> 2")
 
     # execute avaliaible steps
@@ -525,36 +525,36 @@ def run(ctx: protocol_api.ProtocolContext):
         'opentrons_24_tuberack_nest_1.5ml_screwcap', 1)
 
     # Destination plate SLOT 2
-    aw_plate = ctx.load_labware(moving_type, 2)
-    aw_wells = aw_plate.wells()[:NUM_SAMPLES]
-    aw_wells_multi = aw_plate.rows()[0][:num_cols]
+    aw_slot = ctx.load_labware(moving_type, 2)
+    aw_wells = aw_slot.wells()[:NUM_SAMPLES]
+    aw_wells_multi = aw_slot.rows()[0][:num_cols]
 
     # Magnetic Beads Pool
-    mag_beads_pool = ctx.load_labware(
+    beads_slot = ctx.load_labware(
         'nest_12_reservoir_15ml', 3)
-    mag_beads_wells_multi = mag_beads_pool.rows()[0][:num_cols]
+    beads_wells_multi = beads_slot.rows()[0][:num_cols]
 
     # setup up sample sources and destinations
-    # Wash Buffer Pool
-    wb_pool = ctx.load_labware(
+    # Wash Buffer Pool-
+    wb_slot = ctx.load_labware(
         'nest_12_reservoir_15mL', 4)
-    wb_pool_wells_multi = mag_beads_pool.rows()[0][:num_cols]
+    wb_wells_multi = wb_slot.rows()[0][:num_cols]
 
     # # Magnetic module plus NEST_Deep_well_reservoire
     magdeck = ctx.load_module('magnetic module gen2', 7)
     magdeck.disengage()
-    mag_plate = magdeck.load_labware(moving_type)
-    mag_wells_multi = mag_beads_pool.rows()[0][:num_cols]
+    mag_slot = magdeck.load_labware(moving_type)
+    mag_wells_multi = mag_slot.rows()[0][:num_cols]
 
     # Ethanol Pool
-    etoh_pool = ctx.load_labware(
+    etoh_slot = ctx.load_labware(
         'nest_12_reservoir_15ml', 8)
-    etoh_pool_wells_multi = mag_beads_pool.rows()[0][:num_cols]
+    etoh_wells_multi = etoh_slot.rows()[0][:num_cols]
 
     # Temperature module plus NEST_Deep_well_reservoire
     tempdeck = ctx.load_module('tempdeck', 10)
-    temp_plate = tempdeck.load_labware(moving_type)
-    temp_wells_multi = mag_beads_pool.rows()[0][:num_cols]
+    temp_slot = tempdeck.load_labware(moving_type)
+    temp_wells_multi = temp_slot.rows()[0][:num_cols]
 
     # Mount pippets and set racks
     # Tipracks20_multi
@@ -680,7 +680,7 @@ def run(ctx: protocol_api.ProtocolContext):
         disposal_height = -5
         pickup_height = 1
 
-        for source, destination in zip(aw_wells_multi, mag_beads_wells_multi):
+        for source, destination in zip(aw_wells_multi, beads_wells_multi):
             run.pick_up()
             run.move_vol_multichannel(reagent=liquid, source=source,
                                       dest=destination, vol=150, air_gap_vol=air_gap_vol,
@@ -803,7 +803,7 @@ def run(ctx: protocol_api.ProtocolContext):
         disposal_height = -5
         pickup_height = 1
 
-        for source, destination in zip(temp_wells_multi, mag_beads_wells_multi):
+        for source, destination in zip(temp_wells_multi, mag_wells_multi):
             run.pick_up()
             run.move_vol_multichannel(reagent=liquid, source=source,
                                       dest=destination, vol=175, air_gap_vol=air_gap_vol,
@@ -821,16 +821,48 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     # Extraer liquido sin tocar los beats. Slot 7 - Piscina Slot 3
-
-    def move_magnet_to_trash():
+    def move_magnet_to_trash(move_vol_steps = 3):
         run.set_pip("left")  # p300 multi
-        for s, d in zip(temp_plate_wells_multi, mag_wells_multi):
+        # Sobre nadante primer paso
+        liquid = Reagent(name='Sobrenadante',
+                       flow_rate_aspirate=1,
+                       flow_rate_dispense=1.5,
+                       flow_rate_aspirate_mix=1.5,
+                       flow_rate_dispense_mix=5,
+                       air_gap_vol_bottom=5,
+                       air_gap_vol_top=0,
+                       disposal_volume=485,
+                       rinse=True,
+                       max_volume_allowed=500,#No aplica
+                       reagent_volume=0, #No aplica
+                       reagent_reservoir_volume=NUM_SAMPLES * 250 * 1.1,  #No aplica
+                       num_wells=num_cols, # multi
+                       h_cono=1.95,
+                       v_fondo=750)
+
+        air_gap_vol = 3
+        pickup_height = 1
+        disposal_height = 0
+        # Hay que revisar los offsets para el movimiento este
+        for source, destination in zip(mag_wells_multi, beads_wells_multi):
             # Replace this
             run.pick_up()
-            run.move_vol_multichannel(reagent=Beads_PK, source=s,
-                                      dest=d, vol=150, air_gap_vol=air_gap_r1,
-                                      pickup_height=0, disp_height=-10,
-                                      blow_out=True, touch_tip=True, rinse=False)
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=175, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height,
+                                      rinse=True)
+            
+            # Patch for last step of etho 250ul instead of 500
+            if(move_vol_steps==3):
+                run.move_vol_multichannel(reagent=liquid, source=source,
+                                        dest=destination, vol=175, air_gap_vol=air_gap_vol,
+                                        pickup_height=pickup_height, disp_height=disposal_height,
+                                        rinse=True)
+
+            # We want to empty does not matter if we aspirate more                         
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=175, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height,rinse=True)
             run.drop_tip()
 
     ############################################################################
@@ -859,6 +891,7 @@ def run(ctx: protocol_api.ProtocolContext):
     # STEP 11: Pause to replace
     ############################################################################
     if (run.next_step()):
+        run.blink()
         ctx.pause(
             'Replace tips, add WB, add ETOH, vaciar piscina y trash. Cambiar nuevo DW SLOT 10')
         run.finish_step()
@@ -867,16 +900,47 @@ def run(ctx: protocol_api.ProtocolContext):
     # STEP 12: Add 500ul de WB a los bits 4 - 7
     ############################################################################
     if (run.next_step()):
+        run.set_pip("left")  # p300 multi 
+        liquid = Reagent(name='WB',
+                       flow_rate_aspirate=1,
+                       flow_rate_dispense=1.5,
+                       flow_rate_aspirate_mix=1.5,
+                       flow_rate_dispense_mix=5,
+                       air_gap_vol_bottom=5,
+                       air_gap_vol_top=0,
+                       disposal_volume=485,
+                       rinse=True,
+                       max_volume_allowed=500,#No aplica
+                       reagent_volume=0, #No aplica
+                       reagent_reservoir_volume=NUM_SAMPLES * 250 * 1.1,  #No aplica
+                       num_wells=num_cols, # multi
+                       h_cono=1.95,
+                       v_fondo=750)
 
-        run.set_pip("left")  # p300 multi
-        for s, d in zip(temp_plate_wells_multi, mag_wells_multi):
-            # Replace this
+        air_gap_vol = 3
+        disposal_height = -1 # Arriba y el último paso lo hacemos dentro
+        pickup_height = 1 
+
+        for source, destination in zip(wb_wells_multi, mag_wells_multi):
             run.pick_up()
-            run.move_vol_multichannel(reagent=Beads_PK, source=s,
-                                      dest=d, vol=150, air_gap_vol=air_gap_r1,
-                                      pickup_height=0, disp_height=-10,
-                                      blow_out=True, touch_tip=True, rinse=False)
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=175, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height
+                                     )
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=175, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height)
+
+            # This will be drop inside
+            [disposal_height,column_change] = run.calc_height(liquid)
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=135, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height-3)
+            
+            run.custom_mix(liquid, location=source, vol=150,
+                           rounds=10, blow_out=True, mix_height=0)
             run.drop_tip()
+
         run.finish_step()
 
 
@@ -901,21 +965,53 @@ def run(ctx: protocol_api.ProtocolContext):
         magdeck.disengage()
         run.finish_step()
 
+    # Used twice in the next steps
+    etho = Reagent(name='Etho',
+                       flow_rate_aspirate=1,
+                       flow_rate_dispense=1.5,
+                       flow_rate_aspirate_mix=1.5,
+                       flow_rate_dispense_mix=5,
+                       air_gap_vol_bottom=5,
+                       air_gap_vol_top=0,
+                       disposal_volume=485,
+                       rinse=True,
+                       max_volume_allowed=500,#No aplica
+                       reagent_volume=0, #No aplica
+                       reagent_reservoir_volume=NUM_SAMPLES * 250 * 1.1,  #No aplica
+                       num_wells=num_cols, # multi
+                       h_cono=1.95,
+                       v_fondo=750)
     ############################################################################
     # STEP 16: Add 500ul de etoh a los beats Slot 8 - 7
     ############################################################################
     if (run.next_step()):
 
-        run.set_pip("left")  # p300 multi
-        for s, d in zip(temp_plate_wells_multi, mag_wells_multi):
-            # Replace this
+        run.set_pip("left")  # p300 multi 
+        liquid = etho
+        air_gap_vol = 3
+        disposal_height = -1 # Arriba y el último paso lo hacemos dentro
+        pickup_height = 1 
+
+        for source, destination in zip(etoh_wells_multi, mag_wells_multi):
             run.pick_up()
-            run.move_vol_multichannel(reagent=Beads_PK, source=s,
-                                      dest=d, vol=150, air_gap_vol=air_gap_r1,
-                                      pickup_height=0, disp_height=-10,
-                                      blow_out=True, touch_tip=True, rinse=False)
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=175, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height
+                                     )
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=175, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height)
+
+            # This will be drop inside
+            [disposal_height,column_change] = run.calc_height(liquid)
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=135, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height-3)
+            
+            run.custom_mix(liquid, location=source, vol=150,
+                           rounds=10, blow_out=True, mix_height=0)
+                           
             run.drop_tip()
-        run.finish_step()
 
     ############################################################################
     # STEP 17: Magnet on 10 minutos
@@ -943,16 +1039,25 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################################################
     if (run.next_step()):
 
-        run.set_pip("left")  # p300 multi
-        for s, d in zip(temp_plate_wells_multi, mag_wells_multi):
-            # Replace this
+        run.set_pip("left")  # p300 multi 
+        liquid = etho
+        air_gap_vol = 3
+        disposal_height = -1 # Arriba y el último paso lo hacemos dentro
+        pickup_height = 1 
+
+        for source, destination in zip(etoh_wells_multi, mag_wells_multi):
             run.pick_up()
-            run.move_vol_multichannel(reagent=Beads_PK, source=s,
-                                      dest=d, vol=150, air_gap_vol=air_gap_r1,
-                                      pickup_height=0, disp_height=-10,
-                                      blow_out=True, touch_tip=True, rinse=False)
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=175, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height
+                                     )
+            # This will be drop inside
+            [disposal_height,column_change] = run.calc_height(liquid)
+            run.move_vol_multichannel(reagent=liquid, source=source,
+                                      dest=destination, vol=135, air_gap_vol=air_gap_vol,
+                                      pickup_height=pickup_height, disp_height=disposal_height-3)
+            
             run.drop_tip()
-        run.finish_step()
 
     ############################################################################
     # STEP 21: Magnet on 10 minutos
