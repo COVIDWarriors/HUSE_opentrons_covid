@@ -8,7 +8,7 @@ import os
 import numpy as np
 from timeit import default_timer as timer
 import json
-from datetime import datetime
+from datetime import datetime,date
 import csv
 import subprocess
 
@@ -28,12 +28,13 @@ metadata = {
 # Defined variables
 ##################
 NUM_SAMPLES = 8
-steps = range(1,30)  # Steps you want to execut
+steps = range(4,5)  # Steps you want to execut
 set_temp_on = False  # Do you want to start temperature module?
 temperature = 65  # Set temperature. It will be uesed if set_temp_on is set to True
 set_mag_on = False  # Do you want to start magnetic module?
 mag_height = 14  # Height needed for NEST deepwell in magnetic deck
 
+robot = None
 use_waits = True
 
 num_cols = math.ceil(NUM_SAMPLES/8)
@@ -94,10 +95,10 @@ class ProtocolRun:
         if not self.ctx.is_simulating():
             if not os.path.isdir(folder_path):
                 os.mkdir(folder_path)
-            self.file_path = folder_path + '/rna_extraction_.txt'
+            self.file_path = folder_path + '/rna_extraction_%s.tsv'%date.today().strftime("%d_%m_%Y_%H_%M_%S")
         self.selected_pip = "right"
         self.pips = {"right": {}, "left": {}}
-        self.LANGUAGE_DICT = {
+        LANGUAGE_DICT = {
             'esp': 'esp',
             'eng': 'eng'
         }
@@ -121,7 +122,7 @@ class ProtocolRun:
 
     def voice_notification(self,action):
         if not self.ctx.is_simulating():
-            fname = VOICE_FILES_DICT[action]
+            fname = self.VOICE_FILES_DICT[action]
             if os.path.isfile(fname) is True:
                     subprocess.run(
                     ['mpg123', fname],
@@ -129,11 +130,11 @@ class ProtocolRun:
                     stderr=subprocess.PIPE
                     )
             else:
-                robot.comment(f"Sound file does not exist. Call the technician")
+                self.comment(f"Sound file does not exist. Call the technician")
 
     def add_step(self, description, execute=False, wait_time=0):
         self.step_list.append(
-            {'Execute': execute, 'description': description, 'wait_time': wait_time, 'execution_time': 0})
+            {'execute': execute, 'description': description, 'wait_time': wait_time, 'execution_time': 0})
 
     def init_steps(self, steps):
         if(len(steps) > 0):
@@ -147,15 +148,16 @@ class ProtocolRun:
                 self.set_execution_step(index, True)
 
     def set_execution_step(self, index, value):
-        self.step_list[index]["Execute"] = value
+        self.step_list[index]["execute"] = value
 
     def get_current_step(self):
         return self.step_list[self.step]
 
     def next_step(self):
-        if self.step_list[self.step]['Execute'] == False:
+        if self.step_list[self.step]['execute'] == False:
             self.step += 1
             return False
+        self.comment(self.step_list[self.step]['description'],add_hash=True)
         self.start = datetime.now()
         return True
 
@@ -183,7 +185,7 @@ class ProtocolRun:
                 row = ""
                 for step in self.step_list:
                     row = ('{}\t{}\t{}\t{}').format(
-                        step["Execute"], step["description"], step["wait_time"], step["execution_time"])
+                        step["execute"], step["description"], step["wait_time"], step["execution_time"])
                     f.write(row + '\n')
             f.close()
 
@@ -270,7 +272,7 @@ class ProtocolRun:
 
     def drop_tip(self):
         pip = self.get_current_pip()
-        pip.drop_tip()
+        pip.drop_tip(home_after=False)
         self.add_pip_count()
 
     def change_tip(self):
@@ -492,7 +494,7 @@ class ProtocolRun:
 
 
 def run(ctx: protocol_api.ProtocolContext):
-
+    
     # Init protocol run
     run = ProtocolRun(ctx)
     # yo creo que este tiene que ser manual o sacarlo a otro robot
