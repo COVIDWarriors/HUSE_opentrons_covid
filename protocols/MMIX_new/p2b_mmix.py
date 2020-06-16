@@ -83,10 +83,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Init protocol run
     run = ProtocolRun(ctx)
-    run.addStep(description="Make MMIX")
-    run.addStep(description="Transfer MMIX")
-    run.addStep(description="Make MMIX")
-    run.addStep(description="Set up positive control")
+    run.addStep(description="TRANSFER Samples")
 
     # execute avaliaible steps
     if(len(steps) > 0):
@@ -235,153 +232,11 @@ def run(ctx: protocol_api.ProtocolContext):
     for i in range(num_blinks):
         if tempdeck.temperature == temp: run.blink()
     
-    ############################################################################
-    # STEP 1: Make Master MIX
-    ############################################################################
-    if (run.next_step()):
-        run.stop_lights()
-        # ctx.pause('Please check that all desks are ok')
-        run.comment('Selected MMIX: ' +
-                    select_mmix, add_hash=True)
-
-        run.set_pip("left")
-        run.pick_up()
-        drop = False
-        for i, [source] in enumerate(MMIX_components_location):
-
-            run.comment('Add component: ' +
-                        MMIX_components[i].name, add_hash=True)
-
-            # Get volumen calculated
-            vol = MMIX_make["volumes"][i]
-            # because 20ul is the maximum volume of the tip we will choose 17
-            if (vol + air_gap_vol) > run.get_pip_capacity():
-                # calculate what volume should be transferred in each step
-                vol_list = run.divide_volume(vol, run.get_pip_capacity())
-                for vol in vol_list:
-                    # If not in first step we need to change everytime
-                    if(i > 0):
-                        run.pick_up()
-
-                    run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX_destination[0],
-                                              vol=vol, air_gap_vol=air_gap_vol, pickup_height=0, disp_height=-10, 
-                                              blow_out=True)
-
-                    # If not in first step we need to change everytime
-                    if(i > 0):
-                        run.drop_tip()
-                        drop = True
-
-            else:
-                if(i > 0):
-                    run.pick_up()
-                run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX_destination[0],
-                                          vol=vol, air_gap_vol=air_gap_vol, pickup_height=0,
-                                          disp_height=-10, blow_out=True)
-                if(i > 0):
-                    run.drop_tip()
-                    drop = True
-
-            if i+1 < len(MMIX_components):
-                if(not drop):
-                    run.drop_tip()
-
-            else:
-                run.pick_up()
-                run.comment('Final mix', add_hash=True)
-
-                run.custom_mix(reagent=MMIX, location=MMIX_destination[0], vol=50, rounds=5,
-                               blow_out=True, mix_height=2)
-                run.drop_tip()
-
-        run.finish_step()
-
-    
-    ############################################################################
-    # STEP 2: Transfer Master MIX
-    ############################################################################
-    # run.start_lights()
-    if (run.next_step()):
-        run.set_pip("right")
-        run.pick_up()
-        volumen_mmix = MMIX_make["volume_available"]
-        for dest in pcr_wells:
-            [pickup_height, col_change] = run.calc_height(
-                MMIX, area_section_screwcap, MMIX_make["volume_mmix"])
-            print('Destination: ' + str(dest) + ' Pickup: --> ' + str(pickup_height))
-            run.comment('Start transfer MasterMIX')
-            run.move_vol_multichannel(reagent=MMIX, source=MMIX_destination[0],
-                                      dest=dest, vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
-                                      pickup_height=pickup_height, disp_height=-10,
-                                      blow_out=True, touch_tip=True)
-                                      # change
-        # mmix to positive and negative control
-        #    -> Positive
-        run.comment('MMIX to positive recipe')
-        run.move_vol_multichannel(reagent=positive_control, source=tuberack.wells('D6')[0],
-                                  dest=pcr_plate.wells('H12')[0],
-                                  vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=-10,
-                                  blow_out=True, touch_tip=True, post_airgap=True,)
-
-        #    -> Negative
-        run.comment('MMIX to negative recipe')
-        run.move_vol_multichannel(reagent=negative_control, source=tuberack.wells('D6')[0],
-                                  dest=pcr_plate.wells('G12')[0],
-                                  vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=-10,
-                                  blow_out=True, touch_tip=True, post_airgap=True,)
-        
-        # Negative control wtith the same tip than mastermix solution
-        run.comment('Mixing negative control with the same tip')
-        run.move_vol_multichannel(reagent=negative_control, source=elution_plate.wells('G12')[0],
-                                  dest=pcr_plate.wells('G12')[0],
-                                  vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=-10,
-                                  blow_out=True, touch_tip=True, post_airgap=True)
-        run.custom_mix(reagent=negative_control, location=pcr_plate.wells('G12')[0], vol=8, rounds=3,
-                               blow_out=False, mix_height=2)
-
-        run.drop_tip()
-        run.finish_step()
-    
-    ############################################################################
-    # STEP 3: Set up positive control
-    ############################################################################
-    if(run.next_step()):
-        run.comment('pcr_wells')
-        run.set_pip("right")
-        run.pick_up()
-        
-        # Positive Control
-        run.move_vol_multichannel(reagent=positive_control, source=tuberack.wells('A6')[0],
-                                  dest=pcr_plate.wells('H12')[0],
-                                  vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=-10,
-                                  blow_out=True, touch_tip=True, post_airgap=True)
-        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=3,
-                               blow_out=False, mix_height=2)
-        
-        ####################################
-         # ASK IF WANT DEACTIVATE TERMOBLOCK
-        ####################################
-        if remove_termoblock == True:
-            for i in range(num_blinks):
-                if tempdeck.temperature == temp: run.blink()
-            ctx.pause("Please remove the termoblock module to continue")
-        
-        if stop_termoblock == True:
-            tempdeck.deactivate()
-  
-            
-
-
-        run.drop_tip()
-        run.finish_step()
+    )
 
 
     ############################################################################
-    # STEP 4: TRANSFER Samples
+    # STEP 1: TRANSFER Samples
     ############################################################################
     if(run.next_step()):
         run.comment('pcr_wells')

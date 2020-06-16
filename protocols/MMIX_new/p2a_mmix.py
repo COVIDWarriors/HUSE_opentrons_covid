@@ -36,7 +36,7 @@ if remove_termoblock == True: stop_termoblock == True
 ##################
 NUM_SAMPLES = 96
 steps = [] # Steps you want to execute
-temp = 25 # Define termoblock temperature
+temp = 10 # Define termoblock temperature
 num_blinks = 3 # Define number of advisor temperature blinks
 air_gap_vol = 10
 air_gap_mmix = 0
@@ -85,7 +85,6 @@ def run(ctx: protocol_api.ProtocolContext):
     run = ProtocolRun(ctx)
     run.addStep(description="Make MMIX")
     run.addStep(description="Transfer MMIX")
-    run.addStep(description="Make MMIX")
     run.addStep(description="Set up positive control")
 
     # execute avaliaible steps
@@ -362,6 +361,9 @@ def run(ctx: protocol_api.ProtocolContext):
         run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=3,
                                blow_out=False, mix_height=2)
         
+                    
+        run.drop_tip()
+        
         ####################################
          # ASK IF WANT DEACTIVATE TERMOBLOCK
         ####################################
@@ -373,36 +375,7 @@ def run(ctx: protocol_api.ProtocolContext):
         if stop_termoblock == True:
             tempdeck.deactivate()
   
-            
-
-
-        run.drop_tip()
         run.finish_step()
-
-
-    ############################################################################
-    # STEP 4: TRANSFER Samples
-    ############################################################################
-    if(run.next_step()):
-        run.comment('pcr_wells')
-        run.set_pip("right")
-        # Loop over defined wells
-        for s, d in zip(elution_wells, pcr_wells):
-            run.comment("%s %s" % (s, d))
-            run.pick_up()
-            # Source samples
-            run.move_vol_multichannel(reagent=elution_well, source=s, dest=d,
-                                      vol=volume_elution, air_gap_vol=air_gap_sample,
-                                      pickup_height=3, disp_height=-10,
-                                      blow_out=False, touch_tip=True, post_airgap=True,)
-            run.custom_mix(reagent=elution_well, location=d, vol=8, rounds=3,
-                               blow_out=False, mix_height=2)
-
-            # ADD Custom mix
-            run.drop_tip()
-
-        run.finish_step()
-
 
 
     ############################################################################
