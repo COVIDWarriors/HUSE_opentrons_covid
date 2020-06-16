@@ -26,8 +26,8 @@ metadata = {
 '''
 # Define boolean variable to ask if want deactivate termoblock after step 3
 ##################
-remove_termoblock = False
-stop_termoblock = True
+remove_termoblock = False # when robot finish to use reagents, stop session and wait romoving reagents --> the when user press resume button --> continue
+stop_termoblock = True # when finish to use tempdeck, temperature control is deactivating
 
 # Check stop termoblock when remove termoblock
 if remove_termoblock == True: stop_termoblock == True
@@ -37,7 +37,7 @@ if remove_termoblock == True: stop_termoblock == True
 NUM_SAMPLES = 96
 steps = [] # Steps you want to execute
 temp = 25 # Define termoblock temperature
-num_blinks = 3 # Define number of advisor temperature blinks
+num_blinks = 10 # Define number of advisor temperature blinks
 air_gap_vol = 10
 air_gap_mmix = 0
 air_gap_sample = 0
