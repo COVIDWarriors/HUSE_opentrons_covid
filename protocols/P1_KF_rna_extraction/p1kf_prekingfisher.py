@@ -28,7 +28,7 @@ metadata = {
 # Defined variables
 ##################
 NUM_SAMPLES = 8
-steps = range(1, 30)  # Steps you want to execut
+steps = []  # Steps you want to execut
 set_temp_on = False  # Do you want to start temperature module?
 temperature = 65  # Set temperature. It will be uesed if set_temp_on is set to True
 set_mag_on = False  # Do you want to start magnetic module?
@@ -43,12 +43,12 @@ volume_cone = 57  # Volume in ul that fit in the screwcap cone
 area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
 h_cone = (volume_cone * 3 / area_section_screwcap)
 
-
 air_gap_vol = 10
 air_gap_r1 = 0
 air_gap_sample = 0
-run_id = 'testing'
 
+#Folder for the log files
+run_id = 'prekingfisher'
 
 ##################
 # Custom function
@@ -121,12 +121,12 @@ class ProtocolRun:
                     stderr=subprocess.PIPE
                 )
             else:
-                robot.comment(
+                ctx.comment(
                     f"Sound file does not exist. Call the technician")
 
     def add_step(self, description, execute=False, wait_time=0):
         self.step_list.append(
-            {'Execute': execute, 'description': description, 'wait_time': wait_time, 'execution_time': 0})
+            {'execute': execute, 'description': description, 'wait_time': wait_time, 'execution_time': 0})
 
     def init_steps(self, steps):
         if(len(steps) > 0):
@@ -140,15 +140,16 @@ class ProtocolRun:
                 self.set_execution_step(index, True)
 
     def set_execution_step(self, index, value):
-        self.step_list[index]["Execute"] = value
+        self.step_list[index]["execute"] = value
 
     def get_current_step(self):
         return self.step_list[self.step]
 
     def next_step(self):
-        if self.step_list[self.step]['Execute'] == False:
+        if self.step_list[self.step]['execute'] == False:
             self.step += 1
             return False
+        ctx.comment(self.step_list[self.step]['description'])
         self.start = datetime.now()
         return True
 
@@ -157,7 +158,7 @@ class ProtocolRun:
             ctx.delay(seconds=int(self.get_current_step()[
                 "wait_time"]), msg=self.get_current_step()["description"])
         if (self.get_current_step()["wait_time"] > 0 and not use_waits):
-            self.comment("We simulate a wait of:%s seconds" %
+            ctx.comment("We simulate a wait of:%s seconds" %
                          self.get_current_step()["wait_time"])
         end = datetime.now()
         time_taken = (end - self.start)
@@ -176,7 +177,7 @@ class ProtocolRun:
                 row = ""
                 for step in self.step_list:
                     row = ('{}\t{}\t{}\t{}\t{}').format(
-                        row, step["Execute"], step["description"], step["wait_time"], step["execution_time"])
+                        row, step["execute"], step["description"], step["wait_time"], step["execution_time"])
                     f.write(row + '\n')
             f.close()
 
@@ -272,6 +273,7 @@ class ProtocolRun:
 
     def comment(self, comment, add_hash=False):
         hash_string = '#######################################################'
+        print (ctx)
         if not ctx.is_simulating():
             if (add_hash):
                 ctx.comment(hash_string)
@@ -486,7 +488,7 @@ class ProtocolRun:
 
 def run(context: protocol_api.ProtocolContext):
     global ctx
-    context = ctx
+    ctx = context
     # Init protocol run
     run = ProtocolRun()
     # yo creo que este tiene que ser manual o sacarlo a otro robot
@@ -506,11 +508,7 @@ def run(context: protocol_api.ProtocolContext):
         'opentrons_24_tuberack_nest_1.5ml_screwcap', 1)
 
     # Destination plate SLOT 2
-    if ctx.is_simulating:
-        aw_slot = ctx.load_labware(
-            'opentrons_96_filtertiprack_200ul', 2)
-    else:
-        aw_slot = ctx.load_labware(
+    aw_slot = ctx.load_labware(
             'axygen_96_wellplate_2000ul', 2)
 
     aw_wells = aw_slot.wells()[:NUM_SAMPLES]
@@ -683,4 +681,6 @@ def run(context: protocol_api.ProtocolContext):
 
     run.log_steps_time()
     run.blink()
+    for c in robot.commands():
+        ctx.comment(c)
     ctx.comment('Finished! \nMove plate to PCR')

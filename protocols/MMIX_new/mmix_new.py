@@ -113,7 +113,7 @@ def run(ctx: protocol_api.ProtocolContext):
     # Eluted from King fisher/ Manual / Other
     if ctx.is_simulating:
         elution_plate = ctx.load_labware(
-            'opentrons_96_filtertiprack_200ul', '8')
+            'open', '8')
     else:
         elution_plate = ctx.load_labware(
             'axygen_96_wellplate_2000ul', '8')
