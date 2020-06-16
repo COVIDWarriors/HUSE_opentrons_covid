@@ -339,7 +339,7 @@ def run(ctx: protocol_api.ProtocolContext):
                                   vol=volume_elution, air_gap_vol=air_gap_sample,
                                   pickup_height=3, disp_height=-10,
                                   blow_out=True, touch_tip=True, post_airgap=True)
-        run.custom_mix(reagent=negative_control, location=pcr_plate.wells('G12')[0], vol=8, rounds=3,
+        run.custom_mix(reagent=negative_control, location=pcr_plate.wells('G12')[0], vol=8, rounds=1,
                                blow_out=False, mix_height=2)
 
         run.drop_tip()
@@ -359,7 +359,7 @@ def run(ctx: protocol_api.ProtocolContext):
                                   vol=volume_elution, air_gap_vol=air_gap_sample,
                                   pickup_height=3, disp_height=-10,
                                   blow_out=True, touch_tip=True, post_airgap=True)
-        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=3,
+        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=1,
                                blow_out=False, mix_height=2)
         
         ####################################
@@ -395,7 +395,7 @@ def run(ctx: protocol_api.ProtocolContext):
                                       vol=volume_elution, air_gap_vol=air_gap_sample,
                                       pickup_height=3, disp_height=-10,
                                       blow_out=False, touch_tip=True, post_airgap=True,)
-            run.custom_mix(reagent=elution_well, location=d, vol=8, rounds=3,
+            run.custom_mix(reagent=elution_well, location=d, vol=8, rounds=1,
                                blow_out=False, mix_height=2)
 
             # ADD Custom mix

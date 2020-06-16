@@ -47,7 +47,7 @@ run_id = '$run_id'
 if NUM_SAMPLES >= 95: NUM_SAMPLES = 94
 
 # Tune variables
-select_mmix = "SonEspases1"  # Now only one recipe available
+select_mmix = "Termofisher"  # Now only one recipe available
 volume_elution = 10  # Volume of the sample
 extra_dispensal = 0  # Extra volume for master mix in each distribute transfer
 diameter_screwcap = 8.1  # Diameter of the screwcap
@@ -60,7 +60,7 @@ num_cols = math.ceil(NUM_SAMPLES/8)
 #############################################################
 # Available master mastermixes
 #############################################################
-MMIX_available = {'SonEspases1':
+MMIX_available = {'Termofisher':
                   {
                       "recipe": [8.25, 6.25, 1.25],
                       "sources": ["D3", "C3", "B3"],
@@ -307,7 +307,7 @@ def run(ctx: protocol_api.ProtocolContext):
         for dest in pcr_wells:
             [pickup_height, col_change] = run.calc_height(
                 MMIX, area_section_screwcap, MMIX_make["volume_mmix"])
-            print('Destination: ' + str(dest) + ' Pickup: --> ' + str(pickup_height))
+            # print('Destination: ' + str(dest) + ' Pickup: --> ' + str(pickup_height))
             run.comment('Start transfer MasterMIX')
             run.move_vol_multichannel(reagent=MMIX, source=MMIX_destination[0],
                                       dest=dest, vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
@@ -323,7 +323,7 @@ def run(ctx: protocol_api.ProtocolContext):
                                   pickup_height=3, disp_height=-10,
                                   blow_out=True, touch_tip=True, post_airgap=True,)
 
-        #    -> Negative
+        #    -> Negative    (quitar negativo y ponerlo a p2b)
         run.comment('MMIX to negative recipe')
         run.move_vol_multichannel(reagent=negative_control, source=tuberack.wells('D6')[0],
                                   dest=pcr_plate.wells('G12')[0],
@@ -348,7 +348,7 @@ def run(ctx: protocol_api.ProtocolContext):
     # STEP 3: Set up positive control
     ############################################################################
     if(run.next_step()):
-        run.comment('pcr_wells')
+        run.comment('Set up positive control')
         run.set_pip("right")
         run.pick_up()
         
@@ -358,10 +358,8 @@ def run(ctx: protocol_api.ProtocolContext):
                                   vol=volume_elution, air_gap_vol=air_gap_sample,
                                   pickup_height=3, disp_height=-10,
                                   blow_out=True, touch_tip=True, post_airgap=True)
-        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=3,
+        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=1,
                                blow_out=False, mix_height=2)
-        
-                    
         run.drop_tip()
         
         ####################################
