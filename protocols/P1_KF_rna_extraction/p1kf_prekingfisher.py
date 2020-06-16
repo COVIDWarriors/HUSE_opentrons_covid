@@ -27,15 +27,17 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES = 8
+NUM_SAMPLES = 96
 steps = []  # Steps you want to execut
 set_temp_on = False  # Do you want to start temperature module?
 temperature = 65  # Set temperature. It will be uesed if set_temp_on is set to True
 set_mag_on = False  # Do you want to start magnetic module?
 mag_height = 14  # Height needed for NEST deepwell in magnetic deck
 
-use_waits = True
+if(NUM_SAMPLES>94):
+    NUM_SAMPLES=94;
 
+use_waits = True
 num_cols = math.ceil(NUM_SAMPLES/8)
 
 diameter_screwcap = 8.1  # Diameter of the screwcap
@@ -82,9 +84,7 @@ class Reagent:
         self.delay = delay
         self.area_section_screwcap = area_section_screwcap
 
-
 ctx = None
-
 
 class ProtocolRun:
     def __init__(self):
@@ -113,7 +113,7 @@ class ProtocolRun:
 
     def voice_notification(self, action):
         if not ctx.is_simulating():
-            fname = VOICE_FILES_DICT[action]
+            fname = self.VOICE_FILES_DICT[action]
             if os.path.isfile(fname) is True:
                 subprocess.run(
                     ['mpg123', fname],
@@ -150,6 +150,7 @@ class ProtocolRun:
             self.step += 1
             return False
         ctx.comment(self.step_list[self.step]['description'])
+        self.comment(self.step_list[self.step]['description'],add_hash=True)
         self.start = datetime.now()
         return True
 
@@ -230,25 +231,24 @@ class ProtocolRun:
         source_height: height from bottom to aspirate
         mix_height: height from bottom to dispense
         '''
-        return False
-        # pip = self.get_current_pip()
-        # if mix_height == 0:
-        #     mix_height = 3
-        # pip.aspirate(1, location=location.bottom(
-        #     z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate)
-        # for _ in range(rounds):
-        #     pip.aspirate(vol, location=location.bottom(
-        #         z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate)
-        #     pip.dispense(vol, location=location.bottom(
-        #         z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense)
-        # pip.dispense(1, location=location.bottom(
-        #     z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense)
-        # if blow_out == True:
-        #     pip.blow_out(location.top(z=-2))  # Blow out
-        # if post_dispense == True:
-        #     pip.dispense(post_dispense_vol, location.top(z=-2))
-        # if post_airgap == True:
-        #     pip.dispense(post_airgap_vol, location.top(z=5))
+        pip = self.get_current_pip()
+        if mix_height == 0:
+            mix_height = 3
+        pip.aspirate(1, location=location.bottom(
+            z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate)
+        for _ in range(rounds):
+            pip.aspirate(vol, location=location.bottom(
+                z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate)
+            pip.dispense(vol, location=location.bottom(
+                z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense)
+        pip.dispense(1, location=location.bottom(
+            z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense)
+        if blow_out == True:
+            pip.blow_out(location.top(z=-2))  # Blow out
+        if post_dispense == True:
+            pip.dispense(post_dispense_vol, location.top(z=-2))
+        if post_airgap == True:
+            pip.dispense(post_airgap_vol, location.top(z=5))
 
     def pick_up(self):
         pip = self.get_current_pip()
@@ -264,7 +264,7 @@ class ProtocolRun:
 
     def drop_tip(self):
         pip = self.get_current_pip()
-        pip.drop_tip()
+        pip.drop_tip(home_after=False)
         self.add_pip_count()
 
     def change_tip(self):
@@ -273,14 +273,13 @@ class ProtocolRun:
 
     def comment(self, comment, add_hash=False):
         hash_string = '#######################################################'
-        print (ctx)
-        if not ctx.is_simulating():
-            if (add_hash):
-                ctx.comment(hash_string)
-            ctx.comment(('{}').format(comment))
-            if (add_hash):
-                ctx.comment(hash_string)
-        else:
+        if (add_hash):
+            ctx.comment(hash_string)
+        ctx.comment(('{}').format(comment))
+        if (add_hash):
+            ctx.comment(hash_string)
+
+        if ctx.is_simulating():
             if (add_hash):
                 print(hash_string)
             print(comment)
@@ -522,11 +521,11 @@ def run(context: protocol_api.ProtocolContext):
     # Mount pippets and set racks
     # Tipracks20_multi
     tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 4)
-    tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 5)
-
+    tips300 =  [ctx.load_labware('opentrons_96_filtertiprack_200ul', slot) for slot in ['5','6','8']]
+    
     run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
-    run.mount_left_pip('p300_multi_gen2', tip_racks=[
-                       tips300], capacity=200, multi=True)
+    run.mount_left_pip('p300_multi_gen2', tip_racks=
+                       tips300, capacity=200, multi=True)
 
     ############################################################################
     # STEP 1: Transfer A6 - To AW_PLATE
@@ -545,9 +544,9 @@ def run(context: protocol_api.ProtocolContext):
                          air_gap_vol_bottom=5,
                          air_gap_vol_top=0,
                          disposal_volume=volumen_move,
-                         reagent_volume=volumen_move*NUM_SAMPLES,
-                         max_volume_allowed=150,
-                         reagent_reservoir_volume=volumen_move*NUM_SAMPLES,  # 14800,
+                         reagent_volume=volumen_move*NUM_SAMPLES*1.1,
+                         max_volume_allowed=1500,
+                         reagent_reservoir_volume=volumen_move*NUM_SAMPLES*1.1,  
                          h_cono=4,
                          v_fondo=4 * math.pi * 4 ** 3 / 3,
                          area_section_screwcap=(np.pi * 8.25**2) / 4
@@ -571,7 +570,7 @@ def run(context: protocol_api.ProtocolContext):
         ############################################################################
         # Light flash end of program
         run.set_pip("left")  # p300 multi
-
+        volume = 275
         liquid = Reagent(name='Magnetic beads',
                          flow_rate_aspirate=1,
                          flow_rate_dispense=1.5,
@@ -579,11 +578,11 @@ def run(context: protocol_api.ProtocolContext):
                          flow_rate_dispense_mix=5,
                          air_gap_vol_bottom=5,
                          air_gap_vol_top=0,
-                         disposal_volume=275,
+                         disposal_volume=volume,
                          rinse=True,
-                         max_volume_allowed=180,
-                         reagent_volume=250,
-                         reagent_reservoir_volume=NUM_SAMPLES * 250 * 1.1,
+                         max_volume_allowed=15000,
+                         reagent_volume=5000,
+                         reagent_reservoir_volume=NUM_SAMPLES * volume * 1.1,
                          num_wells=num_cols,
                          h_cono=1.95,
                          v_fondo=750)
@@ -610,7 +609,6 @@ def run(context: protocol_api.ProtocolContext):
     # STEP 4: Transfer B6 MS2 - To AW_PLATE
     ############################################################################
     if (run.next_step()):
-
         run.set_pip("right")  # single 20
         volumen_move = 5
         source = tube_rack.wells("B6")[0]
@@ -624,9 +622,9 @@ def run(context: protocol_api.ProtocolContext):
                          air_gap_vol_bottom=5,
                          air_gap_vol_top=0,
                          disposal_volume=volumen_move,
-                         reagent_volume=volumen_move*NUM_SAMPLES,
+                         reagent_volume=volumen_move*NUM_SAMPLES*1.1,
                          max_volume_allowed=150,
-                         reagent_reservoir_volume=volumen_move*NUM_SAMPLES,  # 14800,
+                         reagent_reservoir_volume=volumen_move*NUM_SAMPLES*1.1,  # 14800,
                          h_cono=4,
                          v_fondo=4 * math.pi * 4 ** 3 / 3,
                          area_section_screwcap=(np.pi * 8.25**2) / 4
@@ -646,7 +644,7 @@ def run(context: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 5: Mix and Pause to replace
+    # STEP 5: Mix
     ############################################################################
     if (run.next_step()):
         run.set_pip("left")
