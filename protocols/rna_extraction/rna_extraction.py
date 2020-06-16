@@ -8,7 +8,7 @@ import os
 import numpy as np
 from timeit import default_timer as timer
 import json
-from datetime import datetime,date
+from datetime import datetime
 import csv
 import subprocess
 
@@ -28,7 +28,7 @@ metadata = {
 # Defined variables
 ##################
 NUM_SAMPLES = 8
-steps = range(4,5)  # Steps you want to execut
+steps = [1]  # Steps you want to execut
 set_temp_on = False  # Do you want to start temperature module?
 temperature = 65  # Set temperature. It will be uesed if set_temp_on is set to True
 set_mag_on = False  # Do you want to start magnetic module?
@@ -95,7 +95,7 @@ class ProtocolRun:
         if not self.ctx.is_simulating():
             if not os.path.isdir(folder_path):
                 os.mkdir(folder_path)
-            self.file_path = folder_path + '/rna_extraction_%s.tsv'%date.today().strftime("%d_%m_%Y_%H_%M_%S")
+            self.file_path = folder_path + '/rna_extraction_%s.tsv'%datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
         self.selected_pip = "right"
         self.pips = {"right": {}, "left": {}}
         LANGUAGE_DICT = {
@@ -105,11 +105,11 @@ class ProtocolRun:
 
         if LANGUAGE_DICT[LANGUAGE] == 'eng':
             self.VOICE_FILES_DICT = {
-                'start': './data/sounds/started_process.mp3',
-                'finish': './data/sounds/finished_process.mp3',
-                'close_door': './data/sounds/close_door.mp3',
-                'replace_tipracks': './data/sounds/replace_tipracks.mp3',
-                'empty_trash': './data/sounds/empty_trash.mp3'
+                'start': '/var/lib/jupyter/notebooks/sounds/started_process.mp3',
+                'finish': '/var/lib/jupyter/notebooks/sounds/finished_process.mp3',
+                'close_door': '/var/lib/jupyter/notebooks/sounds/close_door.mp3',
+                'replace_tipracks': '/var/lib/jupyter/notebooks/sounds/replace_tipracks.mp3',
+                'empty_trash': '/var/lib/jupyter/notebooks/sounds/empty_trash.mp3'
             }
         elif LANGUAGE_DICT[LANGUAGE] == 'esp':
             self.VOICE_FILES_DICT = {
@@ -131,7 +131,8 @@ class ProtocolRun:
                     )
             else:
                 self.comment(f"Sound file does not exist. Call the technician")
-
+        else:
+            print("Sound: %s"%action )
     def add_step(self, description, execute=False, wait_time=0):
         self.step_list.append(
             {'execute': execute, 'description': description, 'wait_time': wait_time, 'execution_time': 0})
@@ -216,8 +217,7 @@ class ProtocolRun:
         self.pips[self.selected_pip]["count"] = 0
 
     def add_pip_count(self):
-        self.pips[self.selected_pip]["count"] + \
-            self.pips[self.selected_pip]["increment_tips"]
+        self.pips[self.selected_pip]["count"] +=self.pips[self.selected_pip]["increment_tips"]
 
     def get_pip_maxes(self):
         return self.pips[self.selected_pip]["maxes"]
