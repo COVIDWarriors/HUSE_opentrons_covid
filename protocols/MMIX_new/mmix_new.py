@@ -537,7 +537,7 @@ class ProtocolRun:
 
     def drop_tip(self):
         pip = self.get_current_pip()
-        pip.drop_tip()
+        pip.drop_tip(home_after=False)
         self.add_pip_count()
 
     def change_tip(self):
