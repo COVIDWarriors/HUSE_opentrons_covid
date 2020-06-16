@@ -10,6 +10,7 @@ from timeit import default_timer as timer
 import json
 from datetime import datetime
 import csv
+import subprocess
 
 # metadata
 metadata = {
@@ -83,7 +84,7 @@ class Reagent:
 
 
 class ProtocolRun:
-    def __init__(self, ctx):
+    def __init__(self, ctx,LANGUAGE="eng"):
         self.ctx = ctx
         self.step_list = []
         self.step = 0
@@ -96,6 +97,39 @@ class ProtocolRun:
             self.file_path = folder_path + '/rna_extraction_.txt'
         self.selected_pip = "right"
         self.pips = {"right": {}, "left": {}}
+        self.LANGUAGE_DICT = {
+            'esp': 'esp',
+            'eng': 'eng'
+        }
+
+        if LANGUAGE_DICT[LANGUAGE] == 'eng':
+            self.VOICE_FILES_DICT = {
+                'start': './data/sounds/started_process.mp3',
+                'finish': './data/sounds/finished_process.mp3',
+                'close_door': './data/sounds/close_door.mp3',
+                'replace_tipracks': './data/sounds/replace_tipracks.mp3',
+                'empty_trash': './data/sounds/empty_trash.mp3'
+            }
+        elif LANGUAGE_DICT[LANGUAGE] == 'esp':
+            self.VOICE_FILES_DICT = {
+                'start': './data/sounds/started_process_esp.mp3',
+                'finish': './data/sounds/finished_process_esp.mp3',
+                'close_door': './data/sounds/close_door_esp.mp3',
+                'replace_tipracks': './data/sounds/replace_tipracks_esp.mp3',
+                'empty_trash': './data/sounds/empty_trash_esp.mp3'
+            }
+
+    def voice_notification(self,action):
+        if not self.ctx.is_simulating():
+            fname = VOICE_FILES_DICT[action]
+            if os.path.isfile(fname) is True:
+                    subprocess.run(
+                    ['mpg123', fname],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                    )
+            else:
+                robot.comment(f"Sound file does not exist. Call the technician")
 
     def add_step(self, description, execute=False, wait_time=0):
         self.step_list.append(
@@ -503,7 +537,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # execute avaliaible steps
     run.init_steps(steps)
-
+    run.voice_notification('start')
     ##################################
     # Define desk
     moving_type = "biorad_96_wellplate_200ul_pcr"
