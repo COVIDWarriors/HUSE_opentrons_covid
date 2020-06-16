@@ -83,44 +83,36 @@ class Reagent:
         self.area_section_screwcap = area_section_screwcap
 
 
+ctx = None
+
+
 class ProtocolRun:
-    def __init__(self, ctx, LANGUAGE="eng"):
-        self.ctx = ctx
+    def __init__(self):
+        global ctx
+        print(ctx)
         self.step_list = []
         self.step = 0
 
         # Folder and file_path for log time
         folder_path = '/var/lib/jupyter/notebooks/'+run_id
-        if not self.ctx.is_simulating():
+        if not ctx.is_simulating():
             if not os.path.isdir(folder_path):
                 os.mkdir(folder_path)
             self.file_path = folder_path + '/KC_qPCR_time_log.txt'
         self.selected_pip = "right"
         self.pips = {"right": {}, "left": {}}
-        self.LANGUAGE_DICT = {
-            'esp': 'esp',
-            'eng': 'eng'
+
+        # To delete if not working
+        self.VOICE_FILES_DICT = {
+            'start': '/var/lib/jupyter/notebooks/data/sounds/started_process.mp3',
+            'finish': '/var/lib/jupyter/notebooks/data/sounds/finished_process.mp3',
+            'close_door': '/var/lib/jupyter/notebooks/data/sounds/close_door.mp3',
+            'replace_tipracks': '/var/lib/jupyter/notebooks/data/sounds/replace_tipracks.mp3',
+            'empty_trash': '/var/lib/jupyter/notebooks/data/sounds/empty_trash.mp3'
         }
 
-        if LANGUAGE_DICT[LANGUAGE] == 'eng':
-            self.VOICE_FILES_DICT = {
-                'start': './data/sounds/started_process.mp3',
-                'finish': './data/sounds/finished_process.mp3',
-                'close_door': './data/sounds/close_door.mp3',
-                'replace_tipracks': './data/sounds/replace_tipracks.mp3',
-                'empty_trash': './data/sounds/empty_trash.mp3'
-            }
-        elif LANGUAGE_DICT[LANGUAGE] == 'esp':
-            self.VOICE_FILES_DICT = {
-                'start': './data/sounds/started_process_esp.mp3',
-                'finish': './data/sounds/finished_process_esp.mp3',
-                'close_door': './data/sounds/close_door_esp.mp3',
-                'replace_tipracks': './data/sounds/replace_tipracks_esp.mp3',
-                'empty_trash': './data/sounds/empty_trash_esp.mp3'
-            }
-
     def voice_notification(self, action):
-        if not self.ctx.is_simulating():
+        if not ctx.is_simulating():
             fname = VOICE_FILES_DICT[action]
             if os.path.isfile(fname) is True:
                 subprocess.run(
@@ -162,8 +154,8 @@ class ProtocolRun:
 
     def finish_step(self):
         if (self.get_current_step()["wait_time"] > 0 and use_waits):
-            self.ctx.delay(seconds=int(self.get_current_step()[
-                           "wait_time"]), msg=self.get_current_step()["description"])
+            ctx.delay(seconds=int(self.get_current_step()[
+                "wait_time"]), msg=self.get_current_step()["description"])
         if (self.get_current_step()["wait_time"] > 0 and not use_waits):
             self.comment("We simulate a wait of:%s seconds" %
                          self.get_current_step()["wait_time"])
@@ -178,7 +170,7 @@ class ProtocolRun:
 
     def log_steps_time(self):
         # Export the time log to a tsv file
-        if not self.ctx.is_simulating():
+        if not ctx.is_simulating():
             with open(self.file_path, 'w') as f:
                 f.write('STEP\texecution\tdescription\twait_time\texecution_time\n')
                 row = ""
@@ -189,7 +181,7 @@ class ProtocolRun:
             f.close()
 
     def mount_pip(self, position, type, tip_racks, capacity, multi=False, size_tipracks=96):
-        self.pips[position]["pip"] = self.ctx.load_instrument(
+        self.pips[position]["pip"] = ctx.load_instrument(
             type, mount=position, tip_racks=tip_racks)
         self.pips[position]["capacity"] = capacity
         self.pips[position]["count"] = 0
@@ -259,9 +251,9 @@ class ProtocolRun:
 
     def pick_up(self):
         pip = self.get_current_pip()
-        if not self.ctx.is_simulating():
+        if not ctx.is_simulating():
             if self.get_pip_count() == self.get_pip_maxes():
-                self.ctx.pause('Replace ' + str(pip.max_volume) + 'µl tipracks before \
+                ctx.pause('Replace ' + str(pip.max_volume) + 'µl tipracks before \
                     resuming.')
                 pip.reset_tipracks()
                 self.reset_pip_count()
@@ -280,12 +272,12 @@ class ProtocolRun:
 
     def comment(self, comment, add_hash=False):
         hash_string = '#######################################################'
-        if not self.ctx.is_simulating():
+        if not ctx.is_simulating():
             if (add_hash):
-                self.ctx.comment(hash_string)
-            self.ctx.comment(('{}').format(comment))
+                ctx.comment(hash_string)
+            ctx.comment(('{}').format(comment))
             if (add_hash):
-                self.ctx.comment(hash_string)
+                ctx.comment(hash_string)
         else:
             if (add_hash):
                 print(hash_string)
@@ -294,8 +286,8 @@ class ProtocolRun:
                 print(hash_string)
 
     def pause(self, comment):
-        if not self.ctx.is_simulating():
-            self.ctx.pause(comment)
+        if not ctx.is_simulating():
+            ctx.pause(comment)
         else:
             print("%s\n Press any key to continue " % comment)
 
@@ -347,7 +339,7 @@ class ProtocolRun:
         pip.dispense(vol + air_gap_vol, drop,
                      rate=reagent.flow_rate_dispense)  # dispense all
         # pause for x seconds depending on reagent
-        self.ctx.delay(seconds=reagent.delay)
+        ctx.delay(seconds=reagent.delay)
         if blow_out == True:
             pip.blow_out(dest.top(z=-2))
         if post_dispense == True:
@@ -388,7 +380,7 @@ class ProtocolRun:
             drop = d.top(z=disp_height)
             pip.dispense(volume, drop, rate=reagent.flow_rate_dispense)
             # pause for x seconds depending on reagent
-            self.ctx.delay(seconds=reagent.delay)
+            ctx.delay(seconds=reagent.delay)
             pip.move_to(d.top(z=5))
             pip.aspirate(air_gap, d.top(
                 z=5), rate=reagent.flow_rate_aspirate)  # air gap
@@ -474,11 +466,11 @@ class ProtocolRun:
         return height, col_change
 
     def start_lights(self):
-        self.ctx._hw_manager.hardware.set_lights(
+        ctx._hw_manager.hardware.set_lights(
             rails=True)  # set lights off when using MMIX
 
     def stop_lights(self):
-        self.ctx._hw_manager.hardware.set_lights(
+        ctx._hw_manager.hardware.set_lights(
             rails=False)  # set lights off when using MMIX
 
     def blink(self):
@@ -492,10 +484,11 @@ class ProtocolRun:
             self.stop_lights()
 
 
-def run(ctx: protocol_api.ProtocolContext):
-
+def run(context: protocol_api.ProtocolContext):
+    global ctx
+    context = ctx
     # Init protocol run
-    run = ProtocolRun(ctx)
+    run = ProtocolRun()
     # yo creo que este tiene que ser manual o sacarlo a otro robot
     run.add_step(
         description="Transfer PK A6 - To AW_PLATE Single Slot1 -> Slot2")  # 1
@@ -513,7 +506,13 @@ def run(ctx: protocol_api.ProtocolContext):
         'opentrons_24_tuberack_nest_1.5ml_screwcap', 1)
 
     # Destination plate SLOT 2
-    aw_slot = ctx.load_labware(moving_type, 2)
+    if ctx.is_simulating:
+        aw_slot = ctx.load_labware(
+            'opentrons_96_filtertiprack_200ul', 2)
+    else:
+        aw_slot = ctx.load_labware(
+            'axygen_96_wellplate_2000ul', 2)
+
     aw_wells = aw_slot.wells()[:NUM_SAMPLES]
     aw_wells_multi = aw_slot.rows()[0][:num_cols]
 
@@ -526,6 +525,7 @@ def run(ctx: protocol_api.ProtocolContext):
     # Tipracks20_multi
     tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 4)
     tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 5)
+
     run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
     run.mount_left_pip('p300_multi_gen2', tip_racks=[
                        tips300], capacity=200, multi=True)

@@ -28,12 +28,13 @@ metadata = {
 # Defined variables
 ##################
 NUM_SAMPLES = 8
-steps = range(1,30)  # Steps you want to execut
+steps = [1]  # Steps you want to execut
 set_temp_on = False  # Do you want to start temperature module?
 temperature = 65  # Set temperature. It will be uesed if set_temp_on is set to True
 set_mag_on = False  # Do you want to start magnetic module?
 mag_height = 14  # Height needed for NEST deepwell in magnetic deck
 
+robot = None
 use_waits = True
 
 num_cols = math.ceil(NUM_SAMPLES/8)
@@ -47,7 +48,7 @@ h_cone = (volume_cone * 3 / area_section_screwcap)
 air_gap_vol = 10
 air_gap_r1 = 0
 air_gap_sample = 0
-run_id = 'testing'
+log_folder = 'rna_extraction_logs'
 
 
 ##################
@@ -90,25 +91,25 @@ class ProtocolRun:
         self.step = 0
 
         # Folder and file_path for log time
-        folder_path = '/var/lib/jupyter/notebooks/'+run_id
+        folder_path = '/var/lib/jupyter/notebooks/'+log_folder
         if not self.ctx.is_simulating():
             if not os.path.isdir(folder_path):
                 os.mkdir(folder_path)
-            self.file_path = folder_path + '/KC_qPCR_time_log.txt'
+            self.file_path = folder_path + '/rna_extraction_%s.tsv'%datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
         self.selected_pip = "right"
         self.pips = {"right": {}, "left": {}}
-        self.LANGUAGE_DICT = {
+        LANGUAGE_DICT = {
             'esp': 'esp',
             'eng': 'eng'
         }
 
         if LANGUAGE_DICT[LANGUAGE] == 'eng':
             self.VOICE_FILES_DICT = {
-                'start': './data/sounds/started_process.mp3',
-                'finish': './data/sounds/finished_process.mp3',
-                'close_door': './data/sounds/close_door.mp3',
-                'replace_tipracks': './data/sounds/replace_tipracks.mp3',
-                'empty_trash': './data/sounds/empty_trash.mp3'
+                'start': '/var/lib/jupyter/notebooks/sounds/started_process.mp3',
+                'finish': '/var/lib/jupyter/notebooks/sounds/finished_process.mp3',
+                'close_door': '/var/lib/jupyter/notebooks/sounds/close_door.mp3',
+                'replace_tipracks': '/var/lib/jupyter/notebooks/sounds/replace_tipracks.mp3',
+                'empty_trash': '/var/lib/jupyter/notebooks/sounds/empty_trash.mp3'
             }
         elif LANGUAGE_DICT[LANGUAGE] == 'esp':
             self.VOICE_FILES_DICT = {
@@ -121,7 +122,7 @@ class ProtocolRun:
 
     def voice_notification(self,action):
         if not self.ctx.is_simulating():
-            fname = VOICE_FILES_DICT[action]
+            fname = self.VOICE_FILES_DICT[action]
             if os.path.isfile(fname) is True:
                     subprocess.run(
                     ['mpg123', fname],
@@ -129,11 +130,12 @@ class ProtocolRun:
                     stderr=subprocess.PIPE
                     )
             else:
-                robot.comment(f"Sound file does not exist. Call the technician")
-
+                self.comment(f"Sound file does not exist. Call the technician")
+        else:
+            print("Sound: %s"%action )
     def add_step(self, description, execute=False, wait_time=0):
         self.step_list.append(
-            {'Execute': execute, 'description': description, 'wait_time': wait_time, 'execution_time': 0})
+            {'execute': execute, 'description': description, 'wait_time': wait_time, 'execution_time': 0})
 
     def init_steps(self, steps):
         if(len(steps) > 0):
@@ -147,15 +149,16 @@ class ProtocolRun:
                 self.set_execution_step(index, True)
 
     def set_execution_step(self, index, value):
-        self.step_list[index]["Execute"] = value
+        self.step_list[index]["execute"] = value
 
     def get_current_step(self):
         return self.step_list[self.step]
 
     def next_step(self):
-        if self.step_list[self.step]['Execute'] == False:
+        if self.step_list[self.step]['execute'] == False:
             self.step += 1
             return False
+        self.comment(self.step_list[self.step]['description'],add_hash=True)
         self.start = datetime.now()
         return True
 
@@ -182,8 +185,8 @@ class ProtocolRun:
                 f.write('STEP\texecution\tdescription\twait_time\texecution_time\n')
                 row = ""
                 for step in self.step_list:
-                    row = ('{}\t{}\t{}\t{}\t{}').format(
-                        row, step["Execute"], step["description"], step["wait_time"], step["execution_time"])
+                    row = ('{}\t{}\t{}\t{}').format(
+                        step["execute"], step["description"], step["wait_time"], step["execution_time"])
                     f.write(row + '\n')
             f.close()
 
@@ -214,8 +217,7 @@ class ProtocolRun:
         self.pips[self.selected_pip]["count"] = 0
 
     def add_pip_count(self):
-        self.pips[self.selected_pip]["count"] + \
-            self.pips[self.selected_pip]["increment_tips"]
+        self.pips[self.selected_pip]["count"] +=self.pips[self.selected_pip]["increment_tips"]
 
     def get_pip_maxes(self):
         return self.pips[self.selected_pip]["maxes"]
@@ -270,7 +272,7 @@ class ProtocolRun:
 
     def drop_tip(self):
         pip = self.get_current_pip()
-        pip.drop_tip()
+        pip.drop_tip(home_after=False)
         self.add_pip_count()
 
     def change_tip(self):
@@ -492,7 +494,7 @@ class ProtocolRun:
 
 
 def run(ctx: protocol_api.ProtocolContext):
-
+    
     # Init protocol run
     run = ProtocolRun(ctx)
     # yo creo que este tiene que ser manual o sacarlo a otro robot
