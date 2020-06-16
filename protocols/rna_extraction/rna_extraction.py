@@ -46,7 +46,7 @@ h_cone = (volume_cone * 3 / area_section_screwcap)
 air_gap_vol = 10
 air_gap_r1 = 0
 air_gap_sample = 0
-run_id = 'testing'
+log_folder = 'rna_extraction_logs'
 
 
 ##################
@@ -89,11 +89,11 @@ class ProtocolRun:
         self.step = 0
 
         # Folder and file_path for log time
-        folder_path = '/var/lib/jupyter/notebooks/'+run_id
+        folder_path = '/var/lib/jupyter/notebooks/'+log_folder
         if not self.ctx.is_simulating():
             if not os.path.isdir(folder_path):
                 os.mkdir(folder_path)
-            self.file_path = folder_path + '/KC_qPCR_time_log.txt'
+            self.file_path = folder_path + '/rna_extraction_.txt'
         self.selected_pip = "right"
         self.pips = {"right": {}, "left": {}}
 
@@ -148,8 +148,8 @@ class ProtocolRun:
                 f.write('STEP\texecution\tdescription\twait_time\texecution_time\n')
                 row = ""
                 for step in self.step_list:
-                    row = ('{}\t{}\t{}\t{}\t{}').format(
-                        row, step["Execute"], step["description"], step["wait_time"], step["execution_time"])
+                    row = ('{}\t{}\t{}\t{}').format(
+                        step["Execute"], step["description"], step["wait_time"], step["execution_time"])
                     f.write(row + '\n')
             f.close()
 
