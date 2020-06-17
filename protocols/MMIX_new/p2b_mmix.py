@@ -34,7 +34,7 @@ if remove_termoblock == True: stop_termoblock == True
 
 # Defined variables
 ##################
-NUM_SAMPLES = 96
+NUM_SAMPLES = 8
 steps = [] # Steps you want to execute
 temp = 25 # Define termoblock temperature
 num_blinks = 3 # Define number of advisor temperature blinks
@@ -173,10 +173,11 @@ def run(ctx: protocol_api.ProtocolContext):
             # Source samples
             run.move_vol_multichannel(reagent=elution_well, source=s, dest=d,
                                       vol=volume_elution, air_gap_vol=air_gap_sample,
-                                      pickup_height=3, disp_height=-10,
+                                      pickup_height=0, disp_height=-10,
                                       blow_out=False, touch_tip=True, post_airgap=True,)
             run.custom_mix(reagent=elution_well, location=d, vol=8, rounds=3,
                                blow_out=False, mix_height=2)
+            
 
             # ADD Custom mix
             run.drop_tip()
@@ -362,6 +363,8 @@ class ProtocolRun:
             if (add_hash):
                 print(hash_string)
 
+    def move_to_blank(self,slot):
+        self.move
 
 
     def move_vol_multichannel(self, reagent, source, dest, vol, air_gap_vol,
