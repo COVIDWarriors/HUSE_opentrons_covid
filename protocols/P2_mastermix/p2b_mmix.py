@@ -34,7 +34,7 @@ if remove_termoblock == True: stop_termoblock == True
 
 # Defined variables
 ##################
-NUM_SAMPLES = 96
+NUM_SAMPLES = 8
 steps = [] # Steps you want to execute
 temp = 25 # Define termoblock temperature
 num_blinks = 3 # Define number of advisor temperature blinks
@@ -173,16 +173,26 @@ def run(ctx: protocol_api.ProtocolContext):
             # Source samples
             run.move_vol_multichannel(reagent=elution_well, source=s, dest=d,
                                       vol=volume_elution, air_gap_vol=air_gap_sample,
-                                      pickup_height=3, disp_height=-10,
+                                      pickup_height=0, disp_height=-10,
                                       blow_out=False, touch_tip=True, post_airgap=True,)
             run.custom_mix(reagent=elution_well, location=d, vol=8, rounds=3,
                                blow_out=False, mix_height=2)
-
             # ADD Custom mix
+            run.drop_tip()
+        
+
+        if NUM_SAMPLES <= 88:   
+            run.pick_up(tips20['A12'])      
+            run.move_vol_multichannel(reagent=elution_well, source=elution_plate.rows()[0][11], dest=pcr_plate.rows()[0][11],
+                                      vol=volume_elution, air_gap_vol=air_gap_sample,
+                                      pickup_height=0, disp_height=-10,
+                                      blow_out=False, touch_tip=True, post_airgap=True,)
+            run.custom_mix(reagent=elution_well, location=pcr_plate.rows()[0][11], vol=8, rounds=3,
+                               blow_out=False, mix_height=2)
             run.drop_tip()
 
         run.finish_step()
-
+        tempdeck.deactivate()
 
 
     ############################################################################
@@ -324,19 +334,24 @@ class ProtocolRun:
         if post_airgap == True:
             pip.dispense(post_airgap_vol, location.top(z=5))
 
-    def pick_up(self):
+    def pick_up(self,multi = None):
         pip = self.get_current_pip()
+        self.multi = multi
         if not self.ctx.is_simulating():
             if self.get_pip_count() == self.get_pip_maxes():
                 self.ctx.pause('Replace ' + str(pip.max_volume) + 'µl tipracks before \
                 resuming.')
                 pip.reset_tipracks()
                 self.reset_pip_count()
-
-        if not pip.hw_pipette['has_tip']:
-            self.add_pip_count()
-            if self.ctx.is_simulating: print('** --> ' + str(self.get_pip_count()) + ' Tips used <-- **')
-            pip.pick_up_tip()
+        
+        if multi != None:
+            pip.pick_up_tip(self.multi)
+        else:
+            if not pip.hw_pipette['has_tip']:
+                self.add_pip_count()
+                if self.ctx.is_simulating: print('** --> ' + str(self.get_pip_count()) + ' Tips used <-- **')
+                pip.pick_up_tip()
+            
 
     def drop_tip(self):
         pip = self.get_current_pip()
