@@ -35,15 +35,9 @@ if remove_termoblock == True: stop_termoblock == True
 # Defined variables
 ##################
 NUM_SAMPLES = 96
-<<<<<<< HEAD
-steps = [] # Steps you want to execute
-temp = 25 # Define termoblock temperature
-num_blinks = 3 # Define number of advisor temperature blinks
-=======
 steps = []  # Steps you want to execute
 temp = 20  # Define termoblock temperature
 num_blinks = 10  # Define number of advisor temperature blinks
->>>>>>> a342ad83aaac3f92b471cb783d1802e5f7b23ec8
 air_gap_vol = 10
 air_gap_mmix = 0
 air_gap_sample = 0
@@ -119,15 +113,11 @@ def run(ctx: protocol_api.ProtocolContext):
         'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '11')
 
     # Eluted from King fisher/ Manual / Other
-<<<<<<< HEAD
-    elution_plate = ctx.load_labware(
-=======
     if ctx.is_simulating:
         elution_plate = ctx.load_labware(
             'open', '8')
     else:
         elution_plate = ctx.load_labware(
->>>>>>> a342ad83aaac3f92b471cb783d1802e5f7b23ec8
             'axygen_96_wellplate_2000ul', '8')
 
     # Tipracks20_multi
@@ -242,6 +232,7 @@ def run(ctx: protocol_api.ProtocolContext):
     pcr_wells = pcr_plate.wells()[:NUM_SAMPLES]
     elution_wells = elution_plate.wells()[:NUM_SAMPLES]
 
+
     # check temperature to know if the protocol can start
     tempdeck.set_temperature(temp)
     for i in range(num_blinks):
@@ -314,8 +305,6 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################################################
     # run.start_lights()
     if (run.next_step()):
-<<<<<<< HEAD
-=======
         negative_control = Reagent(name='Negative control',
                                    rinse=False,
                                    flow_rate_aspirate=1,
@@ -336,7 +325,6 @@ def run(ctx: protocol_api.ProtocolContext):
                                    h_cono=h_cone,
                                    v_fondo=volume_cone  # V cono
                                    )
->>>>>>> a342ad83aaac3f92b471cb783d1802e5f7b23ec8
         run.set_pip("right")
         run.pick_up()
         volumen_mmix = MMIX_make["volume_available"]
@@ -379,12 +367,8 @@ def run(ctx: protocol_api.ProtocolContext):
                        blow_out=False, mix_height=2)
         run.drop_tip()
         run.finish_step()
-<<<<<<< HEAD
-    
-=======
         tempdeck.deactivate()
 
->>>>>>> a342ad83aaac3f92b471cb783d1802e5f7b23ec8
     ############################################################################
     # STEP 3: Set up positive control
     ############################################################################
@@ -407,20 +391,9 @@ def run(ctx: protocol_api.ProtocolContext):
         ####################################
         if remove_termoblock == True:
             for i in range(num_blinks):
-<<<<<<< HEAD
-                if tempdeck.temperature == temp: run.blink()
-            ctx.pause("Please remove the termoblock module to continue")
-        
-        if stop_termoblock == True:
-            tempdeck.deactivate()
-  
-            
-
-=======
                 if tempdeck.temperature == temp:
                     run.blink()
             ctx.pause("Please remove the bermoblock module to continue")
->>>>>>> a342ad83aaac3f92b471cb783d1802e5f7b23ec8
 
         run.drop_tip()
         run.finish_step()
@@ -599,12 +572,8 @@ class ProtocolRun:
 
         if not pip.hw_pipette['has_tip']:
             self.add_pip_count()
-<<<<<<< HEAD
-            if self.ctx.is_simulating: print('** --> ' + str(self.get_pip_count()) + ' Tips used <-- **')
-=======
             if ctx.is_simulating:
                 print('** --> ' + str(self.get_pip_count()) + ' Tips used <-- **')
->>>>>>> a342ad83aaac3f92b471cb783d1802e5f7b23ec8
             pip.pick_up_tip()
 
     def drop_tip(self):
@@ -630,11 +599,6 @@ class ProtocolRun:
             if (add_hash):
                 print(hash_string)
 
-<<<<<<< HEAD
-
-
-=======
->>>>>>> a342ad83aaac3f92b471cb783d1802e5f7b23ec8
     def move_vol_multichannel(self, reagent, source, dest, vol, air_gap_vol,
                               pickup_height, disp_height, x_offset=[0, 0],
                               rinse=False,  blow_out=False, touch_tip=False,
