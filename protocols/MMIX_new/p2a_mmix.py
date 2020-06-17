@@ -323,23 +323,13 @@ def run(ctx: protocol_api.ProtocolContext):
                                   pickup_height=3, disp_height=-10,
                                   blow_out=True, touch_tip=True, post_airgap=True,)
 
-        #    -> Negative    (quitar negativo y ponerlo a p2b)
+        #    -> Negative 
         run.comment('MMIX to negative recipe')
         run.move_vol_multichannel(reagent=negative_control, source=tuberack.wells('D6')[0],
                                   dest=pcr_plate.wells('G12')[0],
                                   vol=volume_elution, air_gap_vol=air_gap_sample,
                                   pickup_height=3, disp_height=-10,
                                   blow_out=True, touch_tip=True, post_airgap=True,)
-        
-        # Negative control wtith the same tip than mastermix solution
-        run.comment('Mixing negative control with the same tip')
-        run.move_vol_multichannel(reagent=negative_control, source=elution_plate.wells('G12')[0],
-                                  dest=pcr_plate.wells('G12')[0],
-                                  vol=volume_elution, air_gap_vol=air_gap_sample,
-                                  pickup_height=3, disp_height=-10,
-                                  blow_out=True, touch_tip=True, post_airgap=True)
-        run.custom_mix(reagent=negative_control, location=pcr_plate.wells('G12')[0], vol=8, rounds=3,
-                               blow_out=False, mix_height=2)
 
         run.drop_tip()
         run.finish_step()
@@ -358,7 +348,7 @@ def run(ctx: protocol_api.ProtocolContext):
                                   vol=volume_elution, air_gap_vol=air_gap_sample,
                                   pickup_height=3, disp_height=-10,
                                   blow_out=True, touch_tip=True, post_airgap=True)
-        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=1,
+        run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=3,
                                blow_out=False, mix_height=2)
         run.drop_tip()
         
