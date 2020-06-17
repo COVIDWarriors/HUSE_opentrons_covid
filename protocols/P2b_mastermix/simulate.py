@@ -1,3 +1,3 @@
 import opentrons.simulate
-protocol_file = open('P1_GF_rna_extraction.py')
+protocol_file = open('p2b_mmix.py')
 opentrons.simulate.simulate(protocol_file)

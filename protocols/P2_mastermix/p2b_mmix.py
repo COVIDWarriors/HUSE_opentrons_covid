@@ -376,8 +376,6 @@ class ProtocolRun:
             if (add_hash):
                 print(hash_string)
 
-
-
     def move_vol_multichannel(self, reagent, source, dest, vol, air_gap_vol,
                               pickup_height, disp_height, x_offset=[0, 0],
                               rinse=False,  blow_out=False, touch_tip=False,
@@ -451,7 +449,6 @@ class ProtocolRun:
             a.append(l[i:i + n])
 
         return a
-
 
     def custom_mix(self, reagent, location, vol, rounds, blow_out, mix_height,
                    x_offset=[0, 0], source_height=3, post_airgap=False, post_airgap_vol=10,
