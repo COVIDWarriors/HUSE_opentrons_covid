@@ -190,7 +190,6 @@ def run(ctx: protocol_api.ProtocolContext):
     run.log_steps_time()
     for i in range(num_blinks):
         if tempdeck.temperature == temp: run.blink()
-    tempdeck.deactivate()
     run.comment('Finished! \nMove plate to PCR')
     run.comment(ctx, 'Hola')
 
