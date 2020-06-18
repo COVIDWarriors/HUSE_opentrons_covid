@@ -34,9 +34,8 @@ temperature = 65  # Set temperature. It will be uesed if set_temp_on is set to T
 set_mag_on = False  # Do you want to start magnetic module?
 mag_height = 14  # Height needed for NEST deepwell in magnetic deck
 
-robot = None
-use_waits = True
 
+use_waits = True
 num_cols = math.ceil(NUM_SAMPLES/8)
 
 diameter_screwcap = 8.1  # Diameter of the screwcap
