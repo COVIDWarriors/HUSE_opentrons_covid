@@ -35,23 +35,24 @@ if remove_termoblock == True: stop_termoblock == True
 # Defined variables
 ##################
 NUM_SAMPLES = 96
-steps = [] # Steps you want to execute
-temp = 10 # Define termoblock temperature
-num_blinks = 3 # Define number of advisor temperature blinks
+steps = []  # Steps you want to execute
+temp = 20  # Define termoblock temperature
+num_blinks = 10  # Define number of advisor temperature blinks
 air_gap_vol = 10
 air_gap_mmix = 0
 air_gap_sample = 0
 run_id = '$run_id'
 
 # Correct num samples
-if NUM_SAMPLES >= 95: NUM_SAMPLES = 94
+if NUM_SAMPLES >= 95:
+    NUM_SAMPLES = 94
 
 # Tune variables
-select_mmix = "Termofisher"  # Now only one recipe available
+select_mmix = "SonEspases1"  # Now only one recipe available
 volume_elution = 10  # Volume of the sample
 extra_dispensal = 0  # Extra volume for master mix in each distribute transfer
 diameter_screwcap = 8.1  # Diameter of the screwcap
-elution_initial_volume = 50 #True
+elution_initial_volume = 50  # True
 volume_cone = 57  # Volume in ul that fit in the screwcap cone
 area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
 h_cone = (volume_cone * 3 / area_section_screwcap)
@@ -60,7 +61,7 @@ num_cols = math.ceil(NUM_SAMPLES/8)
 #############################################################
 # Available master mastermixes
 #############################################################
-MMIX_available = {'Termofisher':
+MMIX_available = {'SonEspases1':
                   {
                       "recipe": [8.25, 6.25, 1.25],
                       "sources": ["D3", "C3", "B3"],
@@ -85,36 +86,38 @@ def run(ctx: protocol_api.ProtocolContext):
     run = ProtocolRun(ctx)
     run.addStep(description="Make MMIX")
     run.addStep(description="Transfer MMIX")
+    run.addStep(description="Make MMIX")
     run.addStep(description="Set up positive control")
 
     # execute avaliaible steps
     if(len(steps) > 0):
         for index in steps:
             if(index <= len(run.step_list)):
-                run.setExecutionStep(index-1,True)
+                run.setExecutionStep(index-1, True)
             else:
                 print("Step index out of range")
     else:
         # print(enumerate(run.step_list))
         for step in run.step_list:
-            step['Execute']=True
-            #run.setExecutionStep(index['Execute'],True)
-        
+            step['Execute'] = True
+            # run.setExecutionStep(index['Execute'],True)
 
-        
     ##################################
     # Define desk
     tempdeck = ctx.load_module('tempdeck', '10')
     tuberack = tempdeck.load_labware(
         'opentrons_24_aluminumblock_generic_2ml_screwcap')
 
-
     # PCR
     pcr_plate = ctx.load_labware(
         'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '11')
 
     # Eluted from King fisher/ Manual / Other
-    elution_plate = ctx.load_labware(
+    if ctx.is_simulating:
+        elution_plate = ctx.load_labware(
+            'open', '8')
+    else:
+        elution_plate = ctx.load_labware(
             'axygen_96_wellplate_2000ul', '8')
 
     # Tipracks20_multi
@@ -224,16 +227,18 @@ def run(ctx: protocol_api.ProtocolContext):
     for source in MMIX_make["sources"]:
         MMIX_components_location.append(
             tuberack.wells(source))
-            
+
     # setup up sample sources and destinations
     pcr_wells = pcr_plate.wells()[:NUM_SAMPLES]
     elution_wells = elution_plate.wells()[:NUM_SAMPLES]
 
+
     # check temperature to know if the protocol can start
     tempdeck.set_temperature(temp)
     for i in range(num_blinks):
-        if tempdeck.temperature == temp: run.blink()
-    
+        if tempdeck.temperature == temp:
+            run.blink()
+
     ############################################################################
     # STEP 1: Make Master MIX
     ############################################################################
@@ -263,7 +268,7 @@ def run(ctx: protocol_api.ProtocolContext):
                         run.pick_up()
 
                     run.move_vol_multichannel(reagent=MMIX_components[i], source=source, dest=MMIX_destination[0],
-                                              vol=vol, air_gap_vol=air_gap_vol, pickup_height=0, disp_height=-10, 
+                                              vol=vol, air_gap_vol=air_gap_vol, pickup_height=0, disp_height=-10,
                                               blow_out=True)
 
                     # If not in first step we need to change everytime
@@ -295,25 +300,44 @@ def run(ctx: protocol_api.ProtocolContext):
 
         run.finish_step()
 
-    
     ############################################################################
     # STEP 2: Transfer Master MIX
     ############################################################################
     # run.start_lights()
     if (run.next_step()):
+        negative_control = Reagent(name='Negative control',
+                                   rinse=False,
+                                   flow_rate_aspirate=1,
+                                   flow_rate_dispense=1,
+                                   reagent_reservoir_volume=50,
+                                   num_wells=1,  # change with num samples
+                                   delay=0,
+                                   h_cono=h_cone,
+                                   v_fondo=volume_cone  # V cono
+                                   )
+        positive_control = Reagent(name='Positive control',
+                                   rinse=False,
+                                   flow_rate_aspirate=1,
+                                   flow_rate_dispense=1,
+                                   reagent_reservoir_volume=50,
+                                   num_wells=1,  # change with num samples
+                                   delay=0,
+                                   h_cono=h_cone,
+                                   v_fondo=volume_cone  # V cono
+                                   )
         run.set_pip("right")
         run.pick_up()
         volumen_mmix = MMIX_make["volume_available"]
         for dest in pcr_wells:
             [pickup_height, col_change] = run.calc_height(
                 MMIX, area_section_screwcap, MMIX_make["volume_mmix"])
-            # print('Destination: ' + str(dest) + ' Pickup: --> ' + str(pickup_height))
+            print('Destination: ' + str(dest) + ' Pickup: --> ' + str(pickup_height))
             run.comment('Start transfer MasterMIX')
             run.move_vol_multichannel(reagent=MMIX, source=MMIX_destination[0],
                                       dest=dest, vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
                                       pickup_height=pickup_height, disp_height=-10,
                                       blow_out=True, touch_tip=True)
-                                      # change
+
         # mmix to positive and negative control
         #    -> Positive
         run.comment('MMIX to positive recipe')
@@ -323,7 +347,7 @@ def run(ctx: protocol_api.ProtocolContext):
                                   pickup_height=3, disp_height=-10,
                                   blow_out=True, touch_tip=True, post_airgap=True,)
 
-        #    -> Negative 
+        #    -> Negative
         run.comment('MMIX to negative recipe')
         run.move_vol_multichannel(reagent=negative_control, source=tuberack.wells('D6')[0],
                                   dest=pcr_plate.wells('G12')[0],
@@ -331,17 +355,28 @@ def run(ctx: protocol_api.ProtocolContext):
                                   pickup_height=3, disp_height=-10,
                                   blow_out=True, touch_tip=True, post_airgap=True,)
 
+        # Negative control wtith the same tip than mastermix solution
+        run.comment('Mixing negative control with the same tip')
+        run.move_vol_multichannel(reagent=negative_control, source=elution_plate.wells('G12')[0],
+                                  dest=pcr_plate.wells('G12')[0],
+                                  vol=volume_elution, air_gap_vol=air_gap_sample,
+                                  pickup_height=3, disp_height=-10,
+                                  blow_out=True, touch_tip=True, post_airgap=True)
+
+        run.custom_mix(reagent=negative_control, location=pcr_plate.wells('G12')[0], vol=8, rounds=3,
+                       blow_out=False, mix_height=2)
         run.drop_tip()
         run.finish_step()
-    
+        tempdeck.deactivate()
+
     ############################################################################
     # STEP 3: Set up positive control
     ############################################################################
     if(run.next_step()):
-        run.comment('Set up positive control')
+        run.comment('pcr_wells')
         run.set_pip("right")
         run.pick_up()
-        
+
         # Positive Control
         run.move_vol_multichannel(reagent=positive_control, source=tuberack.wells('A6')[0],
                                   dest=pcr_plate.wells('H12')[0],
@@ -349,28 +384,49 @@ def run(ctx: protocol_api.ProtocolContext):
                                   pickup_height=3, disp_height=-10,
                                   blow_out=True, touch_tip=True, post_airgap=True)
         run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=3,
-                               blow_out=False, mix_height=2)
-        run.drop_tip()
-        
+                       blow_out=False, mix_height=2)
+
         ####################################
-         # ASK IF WANT DEACTIVATE TERMOBLOCK
+        # ASK IF WANT DEACTIVATE TERMOBLOCK
         ####################################
         if remove_termoblock == True:
             for i in range(num_blinks):
-                if tempdeck.temperature == temp: run.blink()
-            ctx.pause("Please remove the termoblock module to continue")
-        
-        if stop_termoblock == True:
-            tempdeck.deactivate()
-  
+                if tempdeck.temperature == temp:
+                    run.blink()
+            ctx.pause("Please remove the bermoblock module to continue")
+
+        run.drop_tip()
         run.finish_step()
 
+    ############################################################################
+    # STEP 4: TRANSFER Samples
+    ############################################################################
+    if(run.next_step()):
+        run.comment('pcr_wells')
+        run.set_pip("right")
+        # Loop over defined wells
+        for s, d in zip(elution_wells, pcr_wells):
+            run.comment("%s %s" % (s, d))
+            run.pick_up()
+            # Source samples
+            run.move_vol_multichannel(reagent=elution_well, source=s, dest=d,
+                                      vol=volume_elution, air_gap_vol=air_gap_sample,
+                                      pickup_height=3, disp_height=-10,
+                                      blow_out=False, touch_tip=True, post_airgap=True,)
+            run.custom_mix(reagent=elution_well, location=d, vol=8, rounds=3,
+                           blow_out=False, mix_height=2)
+
+            # ADD Custom mix
+            run.drop_tip()
+
+        run.finish_step()
 
     ############################################################################
     # Light flash end of program
     run.log_steps_time()
     for i in range(num_blinks):
-        if tempdeck.temperature == temp: run.blink()
+        if tempdeck.temperature == temp:
+            run.blink()
     run.comment('Finished! \nMove plate to PCR')
     run.comment(ctx, 'Hola')
 
@@ -488,7 +544,7 @@ class ProtocolRun:
         '''
         pip = self.get_current_pip()
         if mix_height == 0:
-            mix_height =  3
+            mix_height = 3
         pip.aspirate(1, location=location.bottom(
             z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate)
         for _ in range(rounds):
@@ -516,7 +572,8 @@ class ProtocolRun:
 
         if not pip.hw_pipette['has_tip']:
             self.add_pip_count()
-            if self.ctx.is_simulating: print('** --> ' + str(self.get_pip_count()) + ' Tips used <-- **')
+            if ctx.is_simulating:
+                print('** --> ' + str(self.get_pip_count()) + ' Tips used <-- **')
             pip.pick_up_tip()
 
     def drop_tip(self):
@@ -541,8 +598,6 @@ class ProtocolRun:
             print(comment)
             if (add_hash):
                 print(hash_string)
-
-
 
     def move_vol_multichannel(self, reagent, source, dest, vol, air_gap_vol,
                               pickup_height, disp_height, x_offset=[0, 0],
@@ -644,35 +699,6 @@ class ProtocolRun:
             pip.blow_out(waste_pool.bottom(pickup_height + 3))
         return (len(dest) * volume)
 
-    def custom_mix(self, reagent, location, vol, rounds, blow_out, mix_height,
-                   x_offset=[0, 0], source_height=3, post_airgap=False, post_airgap_vol=10,
-                   post_dispense=False, post_dispense_vol=20,):
-        '''
-        Function for mixing a given [vol] in the same [location] a x number of [rounds].
-        blow_out: Blow out optional [True,False]
-        x_offset = [source, destination]
-        source_height: height from bottom to aspirate
-        mix_height: height from bottom to dispense
-        '''
-        pip = self.get_current_pip()
-
-        if mix_height == 0:
-            mix_height = 3
-        pip.aspirate(1, location=location.bottom(
-            z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate)
-        for _ in range(rounds):
-            pip.aspirate(vol, location=location.bottom(
-                z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate)
-            pip.dispense(vol, location=location.bottom(
-                z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense)
-        pip.dispense(1, location=location.bottom(
-            z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense)
-        if blow_out == True:
-            pip.blow_out(location.top(z=-2))  # Blow out
-        if post_dispense == True:
-            pip.dispense(post_dispense_vol, location.top(z=-2))
-        if post_airgap == True:
-            pip.dispense(post_airgap_vol, location.top(z=5))
 
     def calc_height(self, reagent, cross_section_area, aspirate_volume, min_height=0.5, extra_volume=30):
         # if support_selected == pcr_support.index[1] : --> refdefine height (calculate_heigh(self))
@@ -724,7 +750,7 @@ class ProtocolRun:
             # ctx._hw_manager.hardware.set_button_light(0,0,1)
             time.sleep(0.3)
             self.stop_lights()
-    
+
     def log_steps_time(self):
         # Export the time log to a tsv file
         if not self.ctx.is_simulating():

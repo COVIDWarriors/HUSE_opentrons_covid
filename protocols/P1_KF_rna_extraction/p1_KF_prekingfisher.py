@@ -27,8 +27,8 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES = 40
-steps = [3]  # Steps you want to execut
+NUM_SAMPLES = 8
+steps = range(5,7)  # Steps you want to execut
 
 # No quitar es seguridad por control + o -
 if(NUM_SAMPLES > 94):
@@ -75,30 +75,6 @@ class Reagent:
         self.vol_well_original = reagent_reservoir_volume / num_wells
         self.vol_well = reagent_reservoir_volume / num_wells
         self.rinse_loops = rinse_loops
-
-    def calc_height(self, cross_section_area, aspirate_volume,
-                    min_height=0.3, extra_volume=50):
-
-        self.comment('Remaining volume ' + str(self.reagent.vol_well) +
-                     '< needed volume ' + str(aspirate_volume) + '?')
-        if self.reagent.vol_well < aspirate_volume + extra_volume:
-            self.reagent.unused.append(self.reagent.vol_well)
-            self.comment('Next column should be picked')
-            # column selector position; intialize to required number
-            self.reagent.col += 1
-            self.reagent.vol_well = self.reagent.vol_well_original
-            self.comment('New volume:' + str(self.reagent.vol_well))
-
-        height = (self.reagent.vol_well - aspirate_volume -
-                  self.reagent.v_cono) / cross_section_area  # - reagent.h_cono
-        reagent.vol_well = self.reagent.vol_well - aspirate_volume
-        self.comment('Calculated height is ' + str(height))
-        if height < min_height:
-            height = min_height
-        self.comment('Used height is ' + str(height))
-
-        return height
-
 
 class ProtocolRun:
     def __init__(self, ctx):
@@ -198,7 +174,8 @@ class ProtocolRun:
     def get_pip_count(self):
         return self.pips[self.selected_pip]["count"]
 
-    def reset_pip_count(self):
+    def reset_pip_count(self,pip):
+        pip.reset_tipracks()
         self.pips[self.selected_pip]["count"] = 0
 
     def add_pip_count(self):
@@ -225,6 +202,7 @@ class ProtocolRun:
         mix_height: height from bottom to dispense
         '''
         pip = self.get_current_pip()
+        vol = vol-1
         if mix_height == 0:
             mix_height = 3
         pip.aspirate(1, location=location.bottom(
@@ -250,8 +228,7 @@ class ProtocolRun:
             if self.get_pip_count() == self.get_pip_maxes():
                 self.ctx.pause('Replace ' + str(pip.max_volume) + 'µl tipracks before \
                 resuming.')
-                pip.reset_tipracks()
-                self.reset_pip_count()
+                self.reset_pip_count(pip)
 
         if multi != None:
             pip.pick_up_tip(self.multi)
@@ -285,9 +262,8 @@ class ProtocolRun:
                 print(hash_string)
 
     def pause(self, comment):
-        if not self.ctx.is_simulating():
-            self.ctx.pause(comment)
-        else:
+        self.ctx.pause(comment)
+        if self.ctx.is_simulating():
             print("%s\n Press any key to continue " % comment)
 
     def move_volume(self, reagent, source, dest, vol, air_gap_vol,
@@ -328,35 +304,6 @@ class ProtocolRun:
         if touch_tip == True:
             pipet.touch_tip(speed=20, v_offset=-5, radius=0.9)
 
-    def custom_mix(self, reagent, location, vol, rounds, blow_out, mix_height,
-                   source_height=2, post_airgap=True, post_airgap_vol=10,
-                   post_dispense=False, post_dispense_vol=20, x_offset=[0, 0]):
-        '''
-        Function for mixing a given [vol] in the same [location] a x number of [rounds].
-        blow_out: Blow out optional [True,False]
-        x_offset = [source, destination]
-        source_height: height from bottom to aspirate
-        mix_height: height from bottom to dispense
-        '''
-        pipet = self.get_current_pip()
-        if mix_height <= 0:
-            mix_height = 3
-        pipet.aspirate(1, location=location.bottom(
-            z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate_mix)
-        for _ in range(rounds):
-            pipet.aspirate(vol, location=location.bottom(
-                z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate_mix)
-            pipet.dispense(vol, location=location.bottom(
-                z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense_mix)
-        pipet.dispense(1, location=location.bottom(
-            z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense_mix)
-        if blow_out == True:
-            pipet.blow_out(location.top(z=-2))  # Blow out
-        if post_dispense == True:
-            pipet.dispense(post_dispense_vol, location.top(z=-2))
-        if post_airgap == True:
-            pipet.dispense(post_airgap_vol, location.top(z=5))
-
     def calc_height(self, reagent, cross_section_area, aspirate_volume,
                     min_height=0.3, extra_volume=50):
 
@@ -371,25 +318,22 @@ class ProtocolRun:
             self.comment(str('After change: ' + str(reagent.col)))
             reagent.vol_well = reagent.vol_well_original
             self.comment('New volume:' + str(reagent.vol_well))
-            height = (reagent.vol_well - aspirate_volume -
-                      reagent.v_cono) / cross_section_area
-            reagent.vol_well = reagent.vol_well - aspirate_volume
-            if (height < min_height):
-                height = min_height
-            col_change = True
+            
             self.comment('Remaining volume now will be:' +
                          str(reagent.vol_well))
-
+            col_change = True                         
         else:
-            height = (reagent.vol_well - aspirate_volume -
-                      reagent.v_cono) / cross_section_area  # - reagent.h_cono
-            reagent.vol_well = reagent.vol_well - aspirate_volume
-            self.comment('Calculated height is ' + str(height))
-            if height < min_height:
-                height = min_height
-            self.comment('Used height is ' + str(height))
             col_change = False
-        return height, col_change
+        
+        height = (reagent.vol_well - aspirate_volume -
+                    reagent.v_cono) / cross_section_area  # - reagent.h_cono
+        reagent.vol_well = reagent.vol_well - aspirate_volume
+        self.comment('Calculated height is ' + str(height))
+        if height < min_height:
+            height = min_height
+        self.comment('Used height is ' + str(height))
+        
+        return height
 
     def divide_volume(self, volume, max_vol):
 
@@ -426,17 +370,21 @@ class ProtocolRun:
             time.sleep(0.3)
             self.stop_lights()
 
-
 def run(ctx: protocol_api.ProtocolContext):
     # Init protocol run
     run = ProtocolRun(ctx)
-    run.comment("You are about to run %s samples" % NUM_SAMPLES, add_hash=True)
+    run.comment("You are about to run %s samples\n STEPS:%s" % (NUM_SAMPLES,steps), add_hash=True)
+    run.pause("Are you sure the set up is correct? Check the desk before continue")
 
     # Define stesp
     run.add_step(
         description="Transfer PK A6 - To AW_PLATE Single Slot1 -> Slot2")  # 1
-    run.add_step(description="Transfer MS2 B6 - To AW_PLATE Single 1->2")  # 4
+    run.add_step(description="Transfer MS2 B6 - To AW_PLATE Single 1->2")  # 2
     run.add_step(description="Transfer Beats 3 - 2 Multi and mix")  # 3
+    run.add_step(description="Pause to replace tip racks")  # 4
+    run.add_step(description="Slot 2 -> 1 Washing buffer to plate")  # 5
+    run.add_step(description="Slot 2 -> 3 elution buffer to plate")  # 6
+    run.add_step(description="Slot 10 -> 11 etoh to plate")  # 7
 
     # execute avaliaible steps
     run.init_steps(steps)
@@ -447,14 +395,15 @@ def run(ctx: protocol_api.ProtocolContext):
     tube_rack = ctx.load_labware(
         'opentrons_24_tuberack_nest_1.5ml_screwcap', 4)
 
+
+    
     # Destination plate SLOT 2
     if(ctx.is_simulating()):
-        aw_slot = ctx.load_labware(
-            'opentrons_96_aluminumblock_generic_pcr_strip_200ul', 5)
+        labware_type = 'opentrons_96_aluminumblock_generic_pcr_strip_200ul'    
     else:
-        aw_slot = ctx.load_labware(
-            'axygen_96_wellplate_2000ul', 5)
+        labware_type = 'axygen_96_wellplate_2000ul'
 
+    aw_slot = ctx.load_labware(labware_type, 5)
     aw_wells = aw_slot.wells()[:NUM_SAMPLES]
     aw_wells_multi = aw_slot.rows()[0][:num_cols]
 
@@ -462,6 +411,20 @@ def run(ctx: protocol_api.ProtocolContext):
     beads_slot = ctx.load_labware(
         'nest_12_reservoir_15ml', 6)
     beads_wells_multi = beads_slot.rows()[0][:num_cols]
+
+    # Magnetic Beads Pool
+    wbeb_slot = ctx.load_labware(
+        'nest_12_reservoir_15ml', 2)
+
+    etoh_pool_slot = ctx.load_labware(
+        'nest_1_reservoir_195ml', 10)
+    
+    wb_slot = ctx.load_labware(labware_type, 1)
+    wb_wells_multi = wb_slot.rows()[0][:num_cols]
+    eb_slot = ctx.load_labware(labware_type, 3)
+    eb_wells_multi = eb_slot.rows()[0][:num_cols]
+    etoh_slot = ctx.load_labware(labware_type, 11)
+    etoh_wells_multi = etoh_slot.rows()[0][:num_cols]
 
     # Mount pippets and set racks
     # Tipracks20_multi
@@ -586,6 +549,131 @@ def run(ctx: protocol_api.ProtocolContext):
 
         run.finish_step()
 
+    ############################################################################
+    # STEP 4: Pause, get DW replace tip racks
+    ############################################################################
+    if (run.next_step()):
+        ############################################################################
+        # Light flash end of program
+        run.blink(5)
+        run.pause("Get deepwell and replace tiprack")
+        
+    ############################################################################
+    # STEP 5: Slot 2 -> 1 Washing buffer to plate
+    ############################################################################
+    if (run.next_step()):
+        ############################################################################
+        # Light flash end of program
+        run.set_pip("left")  # p300 multi
+        volume = 500
+        elution = Reagent(name='WB Washing buffer',
+                        flow_rate_aspirate=0.5,
+                        flow_rate_dispense=0.5,
+                        flow_rate_dispense_mix=4,
+                        flow_rate_aspirate_mix=4,
+                        rinse=True,
+                        delay=2,
+                        reagent_reservoir_volume=30000,
+                        num_wells=3,
+                        h_cono=1.95,
+                        v_fondo=695,
+                        rinse_loops=3)
+
+        air_gap_vol = 5
+        disposal_height = -5
+        elution.reagent_reservoir = wbeb_slot.rows()[0][0:5]
+        pool_area = 8.3*71.1
+
+        run.pick_up()
+        for destination in wb_wells_multi:            
+            vol_min = 1000
+            volume_list = run.divide_volume(volume,175)
+            for vol in volume_list:
+                [pickup_height, col_change] = run.calc_height(
+                    elution, pool_area, vol*8, extra_volume=vol_min)
+                run.move_volume(reagent=elution, source=elution.reagent_reservoir[elution.col],
+                                dest=destination, vol=vol, air_gap_vol=air_gap_vol,
+                                pickup_height=pickup_height, disp_height=disposal_height,
+                                rinse=True, blow_out=True)
+            
+        run.drop_tip()
+
+        run.finish_step()
+    
+    ############################################################################
+    # STEP 6: Slot 2 -> 3 elution buffer to plate
+    ############################################################################
+    if (run.next_step()):
+        ############################################################################
+        # Light flash end of program
+        run.set_pip("left")  # p300 multi
+        volume = 50
+        elution = Reagent(name='WB Washing buffer',
+                        flow_rate_aspirate=0.5,
+                        flow_rate_dispense=0.5,
+                        flow_rate_dispense_mix=4,
+                        flow_rate_aspirate_mix=4,
+                        reagent_reservoir_volume=30000,
+                        num_wells=3,
+                        h_cono=1.95,
+                        v_fondo=695,
+                        rinse_loops=3)
+
+        air_gap_vol = 1
+        disposal_height = -5
+        elution.reagent_reservoir = wbeb_slot.rows()[0][5:10]
+        pool_area = 8.3*71.1
+
+        run.pick_up()
+        for destination in wb_wells_multi:            
+            run.move_volume(reagent=elution, source=elution.reagent_reservoir[elution.col],
+                                dest=destination, vol=vol, air_gap_vol=air_gap_vol,
+                                pickup_height=pickup_height, disp_height=disposal_height,
+                                rinse=True, blow_out=True)
+            
+        run.drop_tip()
+
+        run.finish_step()
+    
+    # ############################################################################
+    # # STEP 7: Slot 10 -> 11 etoh to plate
+    # ############################################################################
+    if (run.next_step()):
+        ############################################################################
+        # Light flash end of program
+        run.set_pip("left")  # p300 multi
+        volume = 1000
+        etoh = Reagent(name='ETOH',
+                        flow_rate_aspirate=0.5,
+                        flow_rate_dispense=0.5,
+                        flow_rate_dispense_mix=4,
+                        flow_rate_aspirate_mix=4
+                        reagent_reservoir_volume=30000,
+                        num_wells=5,
+                        h_cono=1.95,
+                        v_fondo=695)
+
+        air_gap_vol = 5
+        disposal_height = -5
+        etoh.reagent_reservoir = etoh_pool_slot.rows()[0][:num_cols]
+        pool_area = 8.3*71.1
+
+        run.pick_up()
+        for destination in wb_wells_multi:            
+            vol_min = 1000
+            volume_list = run.divide_volume(volume,175)
+            for vol in volume_list:
+                [pickup_height, col_change] = run.calc_height(
+                    etoh, pool_area, vol*8, extra_volume=vol_min)
+                run.move_volume(reagent=etoh, source=etoh.reagent_reservoir[etoh.col],
+                                dest=destination, vol=vol, air_gap_vol=air_gap_vol,
+                                pickup_height=1, disp_height=disposal_height,
+                                rinse=True, blow_out=True)
+            
+        run.drop_tip()
+
+        run.finish_step()
+    
     run.log_steps_time()
     run.blink()
     for c in robot.commands():
