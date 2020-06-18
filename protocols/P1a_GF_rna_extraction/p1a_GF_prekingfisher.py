@@ -27,8 +27,8 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES = 40
-steps = [3]  # Steps you want to execut
+NUM_SAMPLES = 96
+steps = []  # Steps you want to execut
 
 # No quitar es seguridad por control + o -
 if(NUM_SAMPLES > 94):
@@ -44,15 +44,12 @@ volume_cone = 57  # Volume in ul that fit in the screwcap cone
 area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
 h_cone = (volume_cone * 3 / area_section_screwcap)
 
-
 # Folder for the log files
-log_folder = 'prekingfisher'
+log_folder = 'prekingfisher_1a'
 
 ##################
 # Custom function
 ##################
-
-
 class Reagent:
     def __init__(self, name, flow_rate_aspirate, flow_rate_dispense,
                  reagent_reservoir_volume, num_wells, h_cono, v_fondo, rinse=False, delay=0,
@@ -285,13 +282,12 @@ class ProtocolRun:
                 print(hash_string)
 
     def pause(self, comment):
-        if not self.ctx.is_simulating():
-            self.ctx.pause(comment)
-        else:
-            print("%s\n Press any key to continue " % comment)
+        self.ctx.pause(comment)
+        if self.ctx.is_simulating():
+           print("%s\n Press any key to continue " % comment)
 
     def move_volume(self, reagent, source, dest, vol, air_gap_vol,
-                    pickup_height, disp_height, blow_out, touch_tip=False, rinse=False,
+                    pickup_height, disp_height, blow_out=False, touch_tip=False, rinse=False,
                     post_dispense=False, post_dispense_vol=20,
                     post_airgap=True, post_airgap_vol=10, x_offset=[0, 0]):
         # x_offset: list with two values. x_offset in source and x_offset in destination i.e. [-1,1]
@@ -401,7 +397,7 @@ class ProtocolRun:
 def run(ctx: protocol_api.ProtocolContext):
     # Init protocol run
     run = ProtocolRun(ctx)
-    run.comment("You are about to run %s samples" % NUM_SAMPLES, add_hash=True)
+    run.comment("You are about to run %s samples\n STEPS:%s" % (NUM_SAMPLES,steps), add_hash=True)
     run.pause("Are you sure the set up is correct? Check the desk before continue")
     
     # Define stesp

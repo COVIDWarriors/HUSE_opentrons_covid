@@ -400,8 +400,9 @@ def run(ctx: protocol_api.ProtocolContext):
     run.pause("Are you sure the set up is correct? Check the desk before continue")
     # yo creo que este tiene que ser manual o sacarlo a otro robot
     run.add_step(
-        description="Transfer PK A6 - To AW_PLATE Single Slot1 -> Slot2")  # 1
-    run.add_step(description="Transfer MS2 B6 - To AW_PLATE Single 1->2")  # 2
+        description=" ")  # 1
+    #sOBRE PISCINA MISMA CON POSICIONAMIENTO
+    # run.add_step(description="Transfer MS2 B6 - To AW_PLATE Single 1->2")  # 2
     run.add_step(description="Transfer Beats 3 - 2 Multi and mix")  # 3
     # INTERACTION 2
     run.add_step(
