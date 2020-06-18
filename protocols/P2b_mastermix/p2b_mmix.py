@@ -35,7 +35,7 @@ if remove_termoblock == True:
 
 # Defined variables
 ##################
-NUM_SAMPLES = 8
+NUM_SAMPLES = 96
 steps = []  # Steps you want to execute
 temp = 25  # Define termoblock temperature
 num_blinks = 3  # Define number of advisor temperature blinks
@@ -476,9 +476,8 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # check temperature to know if the protocol can start
     tempdeck.set_temperature(temp)
-    for i in range(num_blinks):
-        if tempdeck.temperature == temp:
-            run.blink()
+    if tempdeck.temperature == temp: run.blink(blink_number=num_blinks)
+
 
     ############################################################################
     # STEP 1: TRANSFER Samples
@@ -527,7 +526,5 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################################################
     # Light flash end of program
     run.log_steps_time()
-    for i in range(num_blinks):
-        if tempdeck.temperature == temp:
-            run.blink(num_blinks=2)
+    run.blink(blink_number=num_blinks)
     run.comment('Finished! \nMove plate to PCR')

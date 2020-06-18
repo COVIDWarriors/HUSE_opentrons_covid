@@ -37,8 +37,8 @@ if remove_termoblock == True:
 ##################
 NUM_SAMPLES = 96
 steps = []  # Steps you want to execute
-temp = 10  # Define termoblock temperature
-num_blinks = 3  # Define number of advisor temperature blinks
+temp = 27  # Define termoblock temperature
+num_blinks = 5  # Define number of advisor temperature blinks
 air_gap_vol = 10
 air_gap_mmix = 0
 air_gap_sample = 0
@@ -635,6 +635,8 @@ def run(ctx: protocol_api.ProtocolContext):
                 run.drop_tip()
 
         run.finish_step()
+        for i in range(2):
+            run.blink()
 
     ############################################################################
     # STEP 2: Transfer Master MIX
@@ -673,6 +675,8 @@ def run(ctx: protocol_api.ProtocolContext):
 
         run.drop_tip()
         run.finish_step()
+        for i in range(2):
+            run.blink()
 
     ############################################################################
     # STEP 3: Set up positive control
@@ -709,7 +713,7 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################################################
     # Light flash end of program
     run.log_steps_time()
-    for i in range(num_blinks):
+    for i in range(10):
         if tempdeck.temperature == temp:
             run.blink()
     run.comment('Finished! \nMove plate to PCR')
