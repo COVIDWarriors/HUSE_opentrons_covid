@@ -85,8 +85,6 @@ MMIX_make["volume_available"] = sum(MMIX_make["volumes"])
 ##################
 # Custom function
 ##################
-
-
 class Reagent:
     def __init__(self, name, flow_rate_aspirate, flow_rate_dispense,
                  reagent_reservoir_volume, num_wells, h_cono, v_fondo, rinse=False, delay=0,
@@ -132,7 +130,6 @@ class Reagent:
         self.comment('Used height is ' + str(height))
 
         return height
-
 
 class ProtocolRun:
     def __init__(self, ctx):
@@ -362,35 +359,7 @@ class ProtocolRun:
         if touch_tip == True:
             pipet.touch_tip(speed=20, v_offset=-5, radius=0.9)
 
-    def custom_mix(self, reagent, location, vol, rounds, blow_out, mix_height,
-                   source_height=2, post_airgap=True, post_airgap_vol=10,
-                   post_dispense=False, post_dispense_vol=20, x_offset=[0, 0]):
-        '''
-        Function for mixing a given [vol] in the same [location] a x number of [rounds].
-        blow_out: Blow out optional [True,False]
-        x_offset = [source, destination]
-        source_height: height from bottom to aspirate
-        mix_height: height from bottom to dispense
-        '''
-        pipet = self.get_current_pip()
-        if mix_height <= 0:
-            mix_height = 3
-        pipet.aspirate(1, location=location.bottom(
-            z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate_mix)
-        for _ in range(rounds):
-            pipet.aspirate(vol, location=location.bottom(
-                z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate_mix)
-            pipet.dispense(vol, location=location.bottom(
-                z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense_mix)
-        pipet.dispense(1, location=location.bottom(
-            z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense_mix)
-        if blow_out == True:
-            pipet.blow_out(location.top(z=-2))  # Blow out
-        if post_dispense == True:
-            pipet.dispense(post_dispense_vol, location.top(z=-2))
-        if post_airgap == True:
-            pipet.dispense(post_airgap_vol, location.top(z=5))
-
+    
     def calc_height(self, reagent, cross_section_area, aspirate_volume,
                     min_height=0.3, extra_volume=50):
 
@@ -465,6 +434,9 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Init protocol run
     run = ProtocolRun(ctx)
+    run.comment("You are about to run %s samples" % NUM_SAMPLES, add_hash=True)
+    run.pause("Are you sure the set up is correct? Check the desk before continue")
+
     run.add_step(description="Make MMIX")
     run.add_step(description="Transfer MMIX")
     run.add_step(description="Make MMIX")

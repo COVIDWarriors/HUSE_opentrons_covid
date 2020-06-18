@@ -441,37 +441,6 @@ class ProtocolRun:
 
         return a
 
-
-    def custom_mix(self, reagent, location, vol, rounds, blow_out, mix_height,
-                   x_offset=[0, 0], source_height=3, post_airgap=False, post_airgap_vol=10,
-                   post_dispense=False, post_dispense_vol=20,):
-        '''
-        Function for mixing a given [vol] in the same [location] a x number of [rounds].
-        blow_out: Blow out optional [True,False]
-        x_offset = [source, destination]
-        source_height: height from bottom to aspirate
-        mix_height: height from bottom to dispense
-        '''
-        pip = self.get_current_pip()
-
-        if mix_height == 0:
-            mix_height = 3
-        pip.aspirate(1, location=location.bottom(
-            z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate)
-        for _ in range(rounds):
-            pip.aspirate(vol, location=location.bottom(
-                z=source_height).move(Point(x=x_offset[0])), rate=reagent.flow_rate_aspirate)
-            pip.dispense(vol, location=location.bottom(
-                z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense)
-        pip.dispense(1, location=location.bottom(
-            z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense)
-        if blow_out == True:
-            pip.blow_out(location.top(z=-2))  # Blow out
-        if post_dispense == True:
-            pip.dispense(post_dispense_vol, location.top(z=-2))
-        if post_airgap == True:
-            pip.dispense(post_airgap_vol, location.top(z=5))
-
     def calc_height(self, reagent, cross_section_area, aspirate_volume, min_height=0.5, extra_volume=30):
         # if support_selected == pcr_support.index[1] : --> refdefine height (calculate_heigh(self))
         self.comment('Remaining volume ' + str(reagent.vol_well) +
