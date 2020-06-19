@@ -1,6 +1,6 @@
 import math
 from opentrons.types import Point
-from opentrons import robot
+
 from opentrons import protocol_api
 from opentrons import labware
 import time
@@ -35,7 +35,7 @@ if remove_termoblock == True:
 
 # Defined variables
 ##################
-NUM_SAMPLES = 8
+NUM_SAMPLES = 96
 steps = []  # Steps you want to execute
 temp = 25  # Define termoblock temperature
 num_blinks = 3  # Define number of advisor temperature blinks
@@ -529,5 +529,5 @@ def run(ctx: protocol_api.ProtocolContext):
     run.log_steps_time()
     for i in range(num_blinks):
         if tempdeck.temperature == temp:
-            run.blink(num_blinks=2)
+            run.blink()
     run.comment('Finished! \nMove plate to PCR')
