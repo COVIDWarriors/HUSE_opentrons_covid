@@ -27,7 +27,7 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES = 8
+NUM_SAMPLES = 96
 steps = range(3,12)  # Steps you want to execut
 set_temp_on = True  # Do you want to start temperature module?
 temperature = 25  # Set temperature. It will be uesed if set_temp_on is set to True
@@ -50,10 +50,6 @@ air_gap_r1 = 0
 air_gap_sample = 0
 log_folder = 'rna_extraction_logs'
 
-
-##################
-# Custom function
-##################
 ##################
 # Custom function
 ##################
