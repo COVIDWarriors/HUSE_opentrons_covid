@@ -307,6 +307,7 @@ class ProtocolRun:
 
     def pause(self, comment):
         self.ctx.pause(comment)
+        self.blink(3)
         if self.ctx.is_simulating():
             print("%s\n Press any key to continue " % comment)
 
@@ -539,10 +540,7 @@ def run(ctx: protocol_api.ProtocolContext):
                             dest=destination, vol=vol, air_gap_vol=air_gap_vol,
                             pickup_height=pickup_height, disp_height=disposal_height,
                             rinse=True, blow_out=True)
-
-            run.custom_mix(beads, location=destination, vol=150,
-                           rounds=3, blow_out=True, mix_height=0)
-
+            
             run.drop_tip()
 
         run.finish_step()

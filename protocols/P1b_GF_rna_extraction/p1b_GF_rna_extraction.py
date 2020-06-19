@@ -478,41 +478,6 @@ def run(ctx: protocol_api.ProtocolContext):
     run.mount_left_pip('p300_multi_gen2', tip_racks=[
                        tips300_9, tips300_6, tips300_5], capacity=200, multi=True)
 
-    # # Reagents and their characteristics
-    # WB = Reagent(name='WB washing buffer',
-    #              flow_rate_aspirate=3,
-    #              flow_rate_dispense=3,
-    #              flow_rate_aspirate_mix=15,
-    #              flow_rate_dispense_mix=25,
-    #              air_gap_vol_bottom=5,
-    #              air_gap_vol_top=0,
-    #              disposal_volume=1,
-    #              max_volume_allowed=180,
-    #              reagent_volume=500,
-    #              reagent_reservoir_volume=(
-    #                   NUM_SAMPLES + 5) * 500,  # 60000, #38400
-    #              # num_Wells max is 4
-    #              num_wells=math.ceil((NUM_SAMPLES + 5) * 500 / 13000),
-    #              h_cono=1.95,
-    #              v_fondo=750,  # 1.95 * multi_well_rack_area / 2, #Prismatic
-    #              tip_recycling='A1')
-
-    # aw_well = Reagent(name='dw_plate well',
-    #                   num_wells=1,  # change with num samples
-    #                   delay=0,
-    #                   flow_rate_aspirate=3,  # Original 0.5
-    #                   flow_rate_dispense=3,  # Original 1
-    #                   flow_rate_aspirate_mix=15,
-    #                   flow_rate_dispense_mix=25,
-    #                   air_gap_vol_bottom=5,
-    #                   air_gap_vol_top=0,
-    #                   disposal_volume=1,
-    #                   max_volume_allowed=150,
-    #                   reagent_volume=50,
-    #                   reagent_reservoir_volume=150,
-    #                   h_cono=4,
-    #                   v_fondo=4 * math.pi * 4 ** 3 / 3
-    #                   )
 
     ############################################################################
     # STEP 1: Transfer A6 - To AW_PLATE
