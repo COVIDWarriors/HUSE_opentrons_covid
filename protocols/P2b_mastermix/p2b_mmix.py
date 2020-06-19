@@ -1,6 +1,6 @@
 import math
 from opentrons.types import Point
-from opentrons import robot
+
 from opentrons import protocol_api
 from opentrons import labware
 import time
@@ -57,7 +57,6 @@ volume_cone = 57  # Volume in ul that fit in the screwcap cone
 area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
 h_cone = (volume_cone * 3 / area_section_screwcap)
 num_cols = math.ceil(NUM_SAMPLES/8)
-
 
 class Reagent:
     def __init__(self, name, flow_rate_aspirate, flow_rate_dispense,
@@ -408,9 +407,6 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Init protocol run
     run = ProtocolRun(ctx)
-    run.comment("You are about to run %s samples" % NUM_SAMPLES, add_hash=True)
-    run.pause("Are you sure the set up is correct? Check the desk before continue")
-
     run.add_step(description="TRANSFER Samples")
     run.init_steps(steps)
 

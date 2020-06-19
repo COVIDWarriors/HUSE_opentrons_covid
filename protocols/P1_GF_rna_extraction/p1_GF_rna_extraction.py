@@ -9,7 +9,6 @@ import numpy as np
 from timeit import default_timer as timer
 import json
 from datetime import datetime
-import csv
 import subprocess
 
 # metadata
