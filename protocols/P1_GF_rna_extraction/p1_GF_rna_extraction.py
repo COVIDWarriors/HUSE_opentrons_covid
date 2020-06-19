@@ -28,9 +28,9 @@ metadata = {
 # Defined variables
 ##################
 NUM_SAMPLES = 8
-steps = range(3,8)  # Steps you want to execut
+steps = range(3,12)  # Steps you want to execut
 set_temp_on = True  # Do you want to start temperature module?
-temperature = 65  # Set temperature. It will be uesed if set_temp_on is set to True
+temperature = 25  # Set temperature. It will be uesed if set_temp_on is set to True
 set_mag_on = True  # Do you want to start magnetic module?
 mag_height = 6.5  # Height needed for NEST deepwell in magnetic deck
 
@@ -378,9 +378,6 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Init protocol run
     run = ProtocolRun(ctx)
-    run.comment("You are about to run %s samples" % NUM_SAMPLES, add_hash=True)
-    
-    run.pause("Are you sure the set up is correct? Check the desk before continue")
     
     run.add_step(description="Transfer Beats 3 - 2 Multi and mix")  # 1
     # INTERACTION 2
@@ -394,14 +391,15 @@ def run(ctx: protocol_api.ProtocolContext):
     run.add_step(
         description="Extraer liquido no beads. Slot 7 - Piscina Slot 4")  # 6
     run.add_step(description="Magnetic off")  # 7
-    run.add_step(
-        description="Replace tips, add WB, add ETOH, vaciar piscina y trash. Cambiar nuevo DW SLOT 10")  # INTERACTION 8
-
+    
     # Add WB
-    run.add_step(description="Add 500ul de WB  a los beats Slot 4 - 7 ")  # 11
-    run.add_step(description="Magnetic on: 2 minutes", wait_time=1)  # 2*60 12
-    run.add_step(description="Extraer liquido no beats. Slot 7 - Slot 3")  # 13
-    run.add_step(description="Magnetic off")  # 14
+    run.add_step(description="Add 500ul de WB  a los beats Slot 4 - 7 ")  # 8
+    run.add_step(description="Magnetic on: 2 minutes", wait_time=1)  # 2*60 9
+    run.add_step(description="Extraer liquido no beats. Slot 7 - Slot 3")  # 10
+    run.add_step(description="Magnetic off")  # 11
+
+    run.add_step(
+        description="Replace tips, add WB, add ETOH, vaciar piscina y trash. Cambiar nuevo DW SLOT 10")  # INTERACTION 12
 
     # Add ETOH First step
     run.add_step(description="Add 500ul de etoh a los beats Slot 8 - 7 ")  # 15
@@ -490,7 +488,7 @@ def run(ctx: protocol_api.ProtocolContext):
     
 
     ############################################################################
-    # STEP 3: Slot 3 -2 beats_PK AW
+    # STEP 1:  
     ############################################################################
     if (run.next_step()):
         ############################################################################
@@ -540,7 +538,7 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 4: Pause until the hood is done
+    # STEP 2 
     ############################################################################
     if (run.next_step()):
         run.blink()
@@ -550,7 +548,7 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 5: Incubation at 65ºC
+    # STEP 3: Incubation at 65ºC
     ############################################################################
     if (run.next_step()):
         if (set_temp_on):
@@ -559,7 +557,7 @@ def run(ctx: protocol_api.ProtocolContext):
         tempdeck.deactivate()
 
     ############################################################################
-    # STEP 6: Transfer From temperature to magnet 485ul
+    # STEP 4: Transfer From temperature to magnet 485ul
     ############################################################################
     if (run.next_step()):
 
@@ -637,7 +635,7 @@ def run(ctx: protocol_api.ProtocolContext):
             run.drop_tip()
 
     ############################################################################
-    # STEP 7: Magnet on 10 minutos
+    # STEP 5: Magnet on 10 minutos
     ############################################################################
     if (run.next_step()):
         if (set_mag_on):
@@ -645,31 +643,22 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 8: Extract liquid from magnet to liquid trash
+    # STEP 6: Extract liquid from magnet to liquid trash
     ############################################################################
     if (run.next_step()):
         move_magnet_to_trash()
         run.finish_step()
 
     ############################################################################
-    # STEP 9: Magnet off
+    # STEP 7: Magnet off
     ############################################################################
     if (run.next_step()):
         magdeck.disengage()
         run.finish_step()
 
-    ############################################################################
-    # STEP 10: Pause to replace
-    ############################################################################
-    if (run.next_step()):
-        run.blink()
-        ctx.pause(
-            'Replace tips, add WB, add ETOH, vaciar piscina y trash. Cambiar nuevo DW SLOT 10')
-        run.reset_pip_count(run.get_current_pip())
-        run.finish_step()
 
     ############################################################################
-    # STEP 11: Add 500ul de WB a los bits 4 - 7
+    # STEP 8: Add 500ul de WB a los bits 4 - 7
     ############################################################################
     if (run.next_step()):
         run.set_pip("left")  # p300 multi
@@ -701,8 +690,8 @@ def run(ctx: protocol_api.ProtocolContext):
                             pickup_height=pickup_height, disp_height=disposal_height)
 
             # This will be drop inside
-            pickup_height = wb.calc_height(pool_area,175*8, extra_volume=10)
-            run.move_volume(reagent=wb, source=source,
+            pickup_height = wb.calc_height(pool_area,135*8, extra_volume=10)
+            run.move_volume(reagent=wb, source=wb.get_current_position(),
                             dest=destination, vol=135, air_gap_vol=air_gap_vol,
                             pickup_height=pickup_height, disp_height=-10)
 
@@ -713,24 +702,35 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 12: Magnet on 2 minutos
+    # STEP 9: Magnet on 2 minutos
     ############################################################################
     if (run.next_step()):
         if (set_mag_on):
             magdeck.engage(height=mag_height)
         run.finish_step()
     ############################################################################
-    # STEP 13: Extract liquid from magnet to liquid trash
+    # STEP 10: Extract liquid from magnet to liquid trash
     ############################################################################
     if (run.next_step()):
         move_magnet_to_trash()
         run.finish_step()
 
     ############################################################################
-    # STEP 14: Magnet off
+    # STEP 11: Magnet off
     ############################################################################
     if (run.next_step()):
         magdeck.disengage()
+        run.finish_step()
+
+
+    ############################################################################
+    # STEP 12: Pause to replace
+    ############################################################################
+    if (run.next_step()):
+        run.blink()
+        ctx.pause(
+            'Replace tips, add WB, add ETOH, vaciar piscina y trash. Cambiar nuevo DW SLOT 10')
+        run.reset_pip_count(run.get_current_pip())
         run.finish_step()
 
     # Used twice in the next steps
