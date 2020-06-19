@@ -58,7 +58,6 @@ area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
 h_cone = (volume_cone * 3 / area_section_screwcap)
 num_cols = math.ceil(NUM_SAMPLES/8)
 
-
 class Reagent:
     def __init__(self, name, flow_rate_aspirate, flow_rate_dispense,
                  reagent_reservoir_volume, num_wells, h_cono, v_fondo, rinse=False, delay=0,
@@ -408,9 +407,6 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Init protocol run
     run = ProtocolRun(ctx)
-    run.comment("You are about to run %s samples" % NUM_SAMPLES, add_hash=True)
-    run.pause("Are you sure the set up is correct? Check the desk before continue")
-
     run.add_step(description="TRANSFER Samples")
     run.init_steps(steps)
 
@@ -476,9 +472,8 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # check temperature to know if the protocol can start
     tempdeck.set_temperature(temp)
-    for i in range(num_blinks):
-        if tempdeck.temperature == temp:
-            run.blink()
+    if tempdeck.temperature == temp: run.blink(blink_number=num_blinks)
+
 
     ############################################################################
     # STEP 1: TRANSFER Samples
@@ -527,7 +522,5 @@ def run(ctx: protocol_api.ProtocolContext):
     ############################################################################
     # Light flash end of program
     run.log_steps_time()
-    for i in range(num_blinks):
-        if tempdeck.temperature == temp:
-            run.blink()
+    run.blink(blink_number=num_blinks)
     run.comment('Finished! \nMove plate to PCR')
