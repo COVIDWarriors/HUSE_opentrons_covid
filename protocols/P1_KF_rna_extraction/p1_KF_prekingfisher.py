@@ -27,8 +27,8 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES = 96
-steps = []  # Steps you want to execut
+NUM_SAMPLES = 8
+steps = [1]  # Steps you want to execut
 
 # No quitar es seguridad por control + o -
 if(NUM_SAMPLES > 94):
@@ -236,8 +236,7 @@ class ProtocolRun:
         self.selected_pip = position
 
     def custom_mix(self, reagent, location, vol, rounds, mix_height, blow_out=False,
-                   source_height=3, post_airgap=False, post_airgap_vol=10,
-                   post_dispense=False, post_dispense_vol=10, x_offset=[0, 0]):
+                   source_height=3, post_dispense=0, x_offset=[0, 0]):
         '''
         Function for mixing a given [vol] in the same [location] a x number of [rounds].
         blow_out: Blow out optional [True,False]
@@ -260,11 +259,9 @@ class ProtocolRun:
             z=mix_height).move(Point(x=x_offset[1])), rate=reagent.flow_rate_dispense)
         if blow_out == True:
             pip.blow_out(location.top(z=-2))  # Blow out
-        if post_dispense == True:
+        if post_dispense > 0:
             pip.dispense(post_dispense_vol, location.top(z=-2))
-        if post_airgap == True:
-            pip.dispense(post_airgap_vol, location.top(z=5))
-
+        
     def pick_up(self, multi=None):
         pip = self.get_current_pip()
         self.multi = multi
@@ -313,8 +310,7 @@ class ProtocolRun:
 
     def move_volume(self, reagent, source, dest, vol, air_gap_vol,
                     pickup_height, disp_height, blow_out, touch_tip=False, rinse=False,
-                    post_dispense=False, post_dispense_vol=20,
-                    post_airgap=True, post_airgap_vol=10, x_offset=[0, 0]):
+                    post_dispense=0,x_offset=[0, 0]):
         # x_offset: list with two values. x_offset in source and x_offset in destination i.e. [-1,1]
         # pickup_height: height from bottom where volume
         # rinse: if True it will do 2 rounds of aspirate and dispense before the tranfer
@@ -342,10 +338,8 @@ class ProtocolRun:
         self.ctx.delay(seconds=reagent.delay)
         if blow_out == True:
             pipet.blow_out(dest.top(z=-2))
-        if post_airgap == True:
-            pipet.dispense(post_airgap_vol, dest.top(z=-2))
-        if post_dispense == True:
-            pipet.dispense(post_dispense_vol, dest.top(z=-2))
+        if post_dispense >0:
+            pipet.dispense(post_dispense, dest.top(z=-2))
         if touch_tip == True:
             pipet.touch_tip(speed=20, v_offset=-5, radius=0.9)
 
@@ -374,8 +368,8 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Define stesp
     run.add_step(
-        description="Transfer PK A6 - To AW_PLATE Single Slot1 -> Slot2")  # 1
-    run.add_step(description="Transfer MS2 B6 - To AW_PLATE Single 1->2")  # 2
+        description="Transfer PK A6 - To AW_PLATE Single Slot 4 -> Slot 5")  # 1
+    run.add_step(description="Transfer MS2 B6 - To AW_PLATE Single 4 -> 5")  # 2
     run.add_step(description="Transfer Beads 3 - 2 Multi and mix")  # 3
     run.add_step(description="Pause to replace tip racks")  # 4
     run.add_step(description="Slot 2 -> 1 Washing buffer to plate")  # 5
@@ -456,7 +450,7 @@ def run(ctx: protocol_api.ProtocolContext):
             run.move_volume(reagent=liquid, source=source,
                             dest=dest, vol=volumen_move, air_gap_vol=1,
                             pickup_height=pickup_height, disp_height=-10,
-                            blow_out=True, post_dispense=True, post_dispense_vol=5)
+                            blow_out=True, post_dispense=5)
 
         run.drop_tip()
         run.finish_step()
@@ -487,7 +481,7 @@ def run(ctx: protocol_api.ProtocolContext):
             run.move_volume(reagent=liquid, source=source,
                             dest=dest, vol=volumen_move, air_gap_vol=1,
                             pickup_height=pickup_height, disp_height=-10,
-                            blow_out=True, post_dispense=True, post_dispense_vol=5)
+                            blow_out=True, post_dispense=5)
 
         run.drop_tip()
 
