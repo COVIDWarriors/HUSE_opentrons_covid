@@ -26,10 +26,10 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES =8
-steps = range(12,23)  # Steps you want to execut
+NUM_SAMPLES = 8
+steps = []  # Steps you want to execut
 set_temp_on = True  # Do you want to start temperature module?
-temperature = 25  # Set temperature. It will be uesed if set_temp_on is set to True
+temperature = 25  # Set temperature. It will be used if set_temp_on is set to True
 set_mag_on = True  # Do you want to start magnetic module?
 mag_height = 6.5  # Height needed for NEST deepwell in magnetic deck
 

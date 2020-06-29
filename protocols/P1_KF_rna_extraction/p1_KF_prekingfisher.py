@@ -28,7 +28,7 @@ metadata = {
 # Defined variables
 ##################
 NUM_SAMPLES = 8
-steps = [1]  # Steps you want to execut
+steps = []  # Steps you want to execut
 
 # No quitar es seguridad por control + o -
 if(NUM_SAMPLES > 94):
