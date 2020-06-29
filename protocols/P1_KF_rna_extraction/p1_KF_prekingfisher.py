@@ -27,7 +27,11 @@ metadata = {
 '''
 # Defined variables
 ##################
+<<<<<<< HEAD
+NUM_SAMPLES = 8
+=======
 NUM_SAMPLES = 94
+>>>>>>> 73db8127a671d34632d241a4bf0fd0bb802fd803
 steps = []  # Steps you want to execut
 
 # No quitar es seguridad por control + o -

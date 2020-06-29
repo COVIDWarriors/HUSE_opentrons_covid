@@ -26,12 +26,21 @@ metadata = {
 '''
 # Defined variables
 ##################
+<<<<<<< HEAD
 NUM_SAMPLES = 96
 steps = range(8,28) # Steps you want to execute, blank executes all protocol, range(initial_step,final_step) executes all steps in range from initial to end.
 set_temp_on = True  # Do you want to start the temperature module?
 temperature = 25  # Set temperature. It will be uesed if set_temp_on is set to True
 set_mag_on = True  # Do you want to start the magnetic module?
 mag_height = 6.5  # Height needed to rise the magnets for NEST deepwell in magnetic deck
+=======
+NUM_SAMPLES = 8
+steps = []  # Steps you want to execut
+set_temp_on = True  # Do you want to start temperature module?
+temperature = 25  # Set temperature. It will be used if set_temp_on is set to True
+set_mag_on = True  # Do you want to start magnetic module?
+mag_height = 6.5  # Height needed for NEST deepwell in magnetic deck
+>>>>>>> 0a1d2c2815ad87a73466cddd877ac50482bf66b7
 
 robot = None
 use_waits = True    # While True enables wait_time of step definition. False to bypass the wait_time
