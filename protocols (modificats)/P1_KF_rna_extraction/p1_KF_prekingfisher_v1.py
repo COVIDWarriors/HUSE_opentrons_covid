@@ -27,11 +27,7 @@ metadata = {
 '''
 # Defined variables
 ##################
-<<<<<<< HEAD
-NUM_SAMPLES = 8
-=======
 NUM_SAMPLES = 94
->>>>>>> 73db8127a671d34632d241a4bf0fd0bb802fd803
 steps = []  # Steps you want to execut
 
 # No quitar es seguridad por control + o -
@@ -459,7 +455,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 4.12*4.12*math.pi, volumen_move)
             run.move_volume(reagent=liquid, source=source,
                             dest=dest, vol=volumen_move, air_gap_vol=1,
-                            pickup_height=pickup_height, disp_height=-10,
+                            pickup_height=pickup_height, disp_height=-20,
                             touch_tip=True, post_dispense=50, rinse=True)
             liquid.flow_rate_dispense += 1
             
@@ -574,24 +570,24 @@ def run(ctx: protocol_api.ProtocolContext):
         wb = Reagent(name='WB Wash buffer',
                         flow_rate_aspirate=0.5,
                         flow_rate_dispense=0.5,
-                        flow_rate_dispense_mix=4,
-                        flow_rate_aspirate_mix=4,
+                        flow_rate_dispense_mix=10,
+                        flow_rate_aspirate_mix=10,
                         rinse=True,
                         delay=2,
-                        reagent_reservoir_volume=60000,
-                        num_wells=5,
+                        reagent_reservoir_volume=50800,
+                        num_wells=4,
                         h_cono=1.95,
                         v_fondo=695,
                         rinse_loops=3)
 
         air_gap_vol = 5
         disposal_height = -5
-        wb.set_positions(wbeb_slot.rows()[0][0:5])
+        wb.set_positions(wbeb_slot.rows()[0][0:4])
         pool_area = 8.3*71.1
 
-        run.pick_up()
+        run.pick_up() 
         for destination in wb_wells_multi:            
-            vol_min = 10
+            vol_min = 190
             for vol in wb.divide_volume(volume,180):
                 pickup_height= wb.calc_height(
                     pool_area, vol*8, extra_volume=vol_min)
@@ -630,12 +626,13 @@ def run(ctx: protocol_api.ProtocolContext):
         pool_area = 8.3*71.1
 
         run.pick_up()
-        for destination in wb_wells_multi:            
-            run.move_volume(reagent=elution, source=elution.get_current_position(),
-                                dest=destination, vol=vol, air_gap_vol=air_gap_vol,
-                                pickup_height=pickup_height, disp_height=disposal_height,
+        for destination in eb_wells_multi:            
+            run.move_volume(reagent=elution, source=eb_wells_multi,
+                                dest=destination, vol=volume, air_gap_vol=air_gap_vol,
+                                pickup_height=3, disp_height=disposal_height,
                                 rinse=True, blow_out=True)
-            
+
+
         run.drop_tip()
 
         run.finish_step()
@@ -653,7 +650,7 @@ def run(ctx: protocol_api.ProtocolContext):
                         flow_rate_dispense=0.5,
                         flow_rate_dispense_mix=4,
                         flow_rate_aspirate_mix=4,
-                        reagent_reservoir_volume=30000,
+                        reagent_reservoir_volume=100000,
                         num_wells=12,
                         h_cono=1.95,
                         v_fondo=695)
@@ -665,17 +662,31 @@ def run(ctx: protocol_api.ProtocolContext):
         pickup_height = 1
 
         run.pick_up()
-        for source,destination in zip(etoh_pool_wells_multi,etoh_wells_multi):            
+
+        #Codi Original per moure EtOH:
+
+        '''for source,destination in zip(etoh_pool_wells_multi,etoh_wells_multi):            
             vol_min = 1000
             volume_list = etoh.divide_volume(volume,175)
             for vol in volume_list:
                 run.move_volume(reagent=etoh, source=source,
                                 dest=destination, vol=vol, air_gap_vol=air_gap_vol,
-                                pickup_height=1, disp_height=disposal_height,
-                                rinse=True, blow_out=True)
+                                pickup_height=pickup_height, disp_height=disposal_height,
+                                rinse=True, blow_out=True)'''
             
-        run.drop_tip()
+        #Canviat per Gabriel Cabot
+        for destination in etoh_wells_multi:            
+            vol_min = 1000
+            for vol in etoh.divide_volume(volume,175):
+                pickup_height= etoh.calc_height(
+                    pool_area, vol*8, extra_volume=vol_min)
 
+                run.move_volume(reagent=etoh, source=etoh_pool_wells_multi,
+                                dest=destination, vol=vol, air_gap_vol=air_gap_vol,
+                                pickup_height=pickup_height, disp_height=disposal_height,
+                                rinse=True, blow_out=True)
+
+        run.drop_tip()
         run.finish_step()
     
     run.log_steps_time()
