@@ -29,12 +29,12 @@ steps = []  # Steps you want to execut
 
 vol_pkms2 = 10 # 10 microlitros
 vol_beads = 10 #microlitros
-disposal_height = -30
+disposal_height = -35
 
 if(VOL_SAMPLE==400):
     vol_pkms2=vol_pkms2*2
     vol_beads=vol_beads*2
-    disposal_height = -20
+    disposal_height = -25
 
 # No quitar es seguridad por control + o -
 if(NUM_SAMPLES > 94):

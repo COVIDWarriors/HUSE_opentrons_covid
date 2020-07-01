@@ -248,8 +248,7 @@ def run(ctx: protocol_api.ProtocolContext):
     # STEP 4: Slot 2 -> 3 elution buffer to plate
     ############################################################################
     if (run.next_step()):
-        ############################################################################
-        # Light flash end of program
+
         run.set_pip("left")  # p300 multi
         
         elution = Reagent(name='Elution Buffer',
@@ -274,9 +273,8 @@ def run(ctx: protocol_api.ProtocolContext):
 
         run.pick_up()
         for destination in eb_wells_multi:    
-                
             run.move_volume(reagent=elution, source=elution.get_current_position(),
-                                dest=destination, vol=vol, air_gap_vol=air_gap_vol,
+                                dest=destination, vol=vol_eb, air_gap_vol=air_gap_vol,
                                 pickup_height=pickup_height, disp_height=disposal_height,
                                 blow_out=True)
         run.drop_tip()
@@ -290,7 +288,7 @@ def run(ctx: protocol_api.ProtocolContext):
             pickup_height= 1
 
             run.move_volume(reagent=wb, source=elution.get_current_position(),
-                            dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
+                            dest=negative_control_well, vol=vol_eb, air_gap_vol=air_gap_vol,
                             pickup_height=pickup_height, disp_height=disposal_height,
                             blow_out=True)
 
@@ -385,10 +383,18 @@ class Reagent:
 
         
         if(num_wells!=-1):
-            self.num_wells = num_wells
-            self.vol_well_max = self.reagent_reservoir_volume/self.num_wells
-            self.vol_last_well = self.reagent_reservoir_volume/self.num_wells
-            self.vol_well = self.reagent_reservoir_volume/self.num_wells
+            if(num_wells==1):
+                self.num_wells = num_wells
+                self.vol_well = self.reagent_reservoir_volume
+                self.vol_last_well = self.vol_well
+                self.vol_well_max = vol_well_max
+
+            else:   
+                self.num_wells = num_wells
+                #IF manually made we set up all to have the same
+                self.vol_well_max = self.reagent_reservoir_volume/self.num_wells
+                self.vol_last_well = self.vol_well_max
+                self.vol_well = self.vol_last_well
         else:
             self.vol_well_max = vol_well_max-self.v_cono
             num_wells = math.floor(self.reagent_reservoir_volume/self.vol_well_max)
@@ -432,8 +438,7 @@ class Reagent:
             self.vol_well = self.vol_well_max
         else:
             self.vol_well = self.vol_last_well
-        
-        
+
 
     def calc_height(self, cross_section_area, aspirate_volume,
                     min_height=0.3):
@@ -562,6 +567,7 @@ class ProtocolRun:
         self.mount_pip("left", type, tip_racks, capacity)
 
     def get_current_pip(self):
+        
         return self.pips[self.selected_pip]["pip"]
 
     def get_pip_count(self):
@@ -657,8 +663,8 @@ class ProtocolRun:
         if self.ctx.is_simulating():
             print("%s\n Press any key to continue " % comment)
 
-    def move_volume(self, reagent, source, dest, vol, air_gap_vol,
-                    pickup_height, disp_height, blow_out=False, touch_tip=False, rinse=False,
+    def move_volume(self, reagent, source, dest, vol, 
+                    pickup_height, disp_height, air_gap_vol = 0,blow_out=False, touch_tip=False, rinse=False,
                     post_dispense=0,x_offset=[0, 0]):
         # x_offset: list with two values. x_offset in source and x_offset in destination i.e. [-1,1]
         # pickup_height: height from bottom where volume
