@@ -129,6 +129,7 @@ def run(ctx: protocol_api.ProtocolContext):
                         flow_rate_dispense=0.5,
                         flow_rate_dispense_mix=1,
                         flow_rate_aspirate_mix=1,
+                        
                         delay=1,
                         reagent_reservoir_volume=vol_bb*(NUM_SAMPLES+1),
                         h_cono=1.95,
@@ -165,7 +166,7 @@ def run(ctx: protocol_api.ProtocolContext):
             run.set_pip("right")
             run.pick_up(tips300["H12"])
             negative_control_well = aw_slot.wells("G12")[0]
-
+            pickup_height = bbuffer.calc_height(pool_area, vol)
             for vol in bbuffer.divide_volume(vol_bb,175):
                 pickup_height = bbuffer.calc_height(pool_area, vol)
                 run.move_volume(reagent=bbuffer, source=    bbuffer.get_current_position(),
@@ -272,9 +273,11 @@ def run(ctx: protocol_api.ProtocolContext):
         disposal_height = -5
         
         pool_area = 8.3*71.1
+        pickup_height= 1
 
         run.pick_up()
-        for destination in eb_wells_multi:            
+        for destination in eb_wells_multi:    
+                
             run.move_volume(reagent=elution, source=elution.get_current_position(),
                                 dest=destination, vol=vol, air_gap_vol=air_gap_vol,
                                 pickup_height=pickup_height, disp_height=disposal_height,
@@ -287,6 +290,8 @@ def run(ctx: protocol_api.ProtocolContext):
             run.set_pip("right")
             negative_control_well = eb_slot.wells("G12")[0]
             run.pick_up(tips300["F12"])
+            pickup_height= 1
+            
             run.move_volume(reagent=wb, source=elution.get_current_position(),
                             dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
                             pickup_height=pickup_height, disp_height=disposal_height,
@@ -386,7 +391,7 @@ class Reagent:
             self.num_wells = num_wells
             self.vol_well_max = self.reagent_reservoir_volume/self.num_wells
             self.vol_last_well = self.reagent_reservoir_volume/self.num_wells
-            self.vol_well = self.vol_last_well
+            self.vol_well = self.reagent_reservoir_volume/self.num_wells
         else:
             self.vol_well_max = vol_well_max-self.v_cono
             num_wells = math.floor(self.reagent_reservoir_volume/self.vol_well_max)
