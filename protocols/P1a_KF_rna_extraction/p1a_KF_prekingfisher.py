@@ -14,7 +14,7 @@ import subprocess
 
 # metadata
 metadata = {
-    'protocolName': 'RNA Extraction PreKingFisher Version 2',
+    'protocolName': 'PK+MS2+Beads RNA Extraction PreKingFisher Version 2',
     'author': 'Matias Bonet & Antoni Morla. based on: Malen Aguirregabiria,Aitor Gastaminza & José Luis Villanueva (jlvillanueva@clinic.cat)',
     'source': 'Hospital Son Espases Palma',
     'apiLevel': '2.3',
@@ -24,7 +24,16 @@ metadata = {
 # Defined variables
 ##################
 NUM_SAMPLES = 96
+VOL_SAMPLE = 200 # 200 or 400
 steps = []  # Steps you want to execut
+
+vol_pkms2 = 10 # 10 microlitros
+vol_beads = 10 #microlitros
+
+
+if(VOL_SAMPLE==400):
+    vol_pkms2=vol_pkms2*2
+    vol_beads=vol_beads*2
 
 # No quitar es seguridad por control + o -
 if(NUM_SAMPLES > 94):
@@ -41,19 +50,16 @@ area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
 h_cone = (volume_cone * 3 / area_section_screwcap)
 
 # Folder for the log files
-log_folder = 'prekingfisher_1a'
+log_folder = 'prekingfisher_1b'
 
 def run(ctx: protocol_api.ProtocolContext):
     # Init protocol run
     run = ProtocolRun(ctx)
-    run.comment("You are about to run %s samples\n STEPS:%s" % (NUM_SAMPLES,steps), add_hash=True)
-    run.pause("Are you sure the set up is correct? Check the desk before continue")
     
     # Define stesp
     run.add_step(
-        description="Transfer PK A6 - To AW_PLATE Single Slot1 -> Slot2")  # 1
-    run.add_step(description="Transfer MS2 B6 - To AW_PLATE Single 1->2")  # 4
-    run.add_step(description="Transfer Beats 3 - 2 Multi and mix")  # 3
+        description="Transfer PK+MS2 A6 - To AW_PLATE Single Slot1 -> Slot2")  # 1
+    run.add_step(description="Transfer Beats 3 - 2 Multi and mix")  # 2
 
     # execute avaliaible steps
     run.init_steps(steps)
@@ -73,22 +79,17 @@ def run(ctx: protocol_api.ProtocolContext):
             'axygen_96_wellplate_2000ul', 5)
 
     aw_wells = aw_slot.wells()[:NUM_SAMPLES]
-    aw_wells_multi = aw_slot.rows()[0][:num_cols]
-
-    # Magnetic Beads Pool
-    beads_slot = ctx.load_labware(
-        'nest_12_reservoir_15ml', 6)
-    beads_wells_multi = beads_slot.rows()[0][:num_cols]
 
     # Mount pippets and set racks
     # Tipracks20_multi
-    tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 7)
-    tips300_1 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 8)
-    tips300_2 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 9)
-
-    run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
-    run.mount_left_pip('p300_multi_gen2', tip_racks=[
-                       tips300_1, tips300_2], capacity=200, multi=True)
+    tips20_1 = ctx.load_labware('opentrons_96_tiprack_20ul', 7)
+    tips20_2 = ctx.load_labware('opentrons_96_tiprack_20ul', 8)
+    
+    run.mount_right_pip('p20_single_gen2', tip_racks=[tips20_1,tips20_2], capacity=20)
+    
+    tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 7)
+    
+    run.mount_right_pip('p20_single_gen2', tip_racks=[tips20_1,tips20_2], capacity=20)
 
     ############################################################################
     # STEP 1: Transfer A6 - To AW_PLATE
@@ -97,21 +98,24 @@ def run(ctx: protocol_api.ProtocolContext):
         run.set_pip("right")  # single 20
         volumen_move = 5
         source = tube_rack.wells("A6")[0]
-        liquid = Reagent(name='Proteinasa K',
+        pkms2 = Reagent(
+                         name='PK + MS2',
                          num_wells=1,  # change with num samples
                          flow_rate_aspirate=0.75,  # Original 0.5
                          flow_rate_dispense=3,  # Original 1
-                         reagent_reservoir_volume=528,
+                         reagent_reservoir_volume=vol_pkms2*(NUM_SAMPLES+1),
                          h_cono=4,
                          v_fondo=4 * math.pi * 4 ** 3 / 3
                          )
+        pkms2.set_positions([tube_rack.wells("A5"),tube_rack.wells("B5"),tube_rack.wells("B6")])
+        run.comment(pkms2.get_volumes_fill_print(),add_hash=True)
 
         run.pick_up()
         for dest in aw_wells:
-            [pickup_height, col_change] = run.calc_height(
-                liquid, 4.12*4.12*math.pi, volumen_move)
+            pickup_height = run.calc_height(
+                liquid, 4.12*4.12*math.pi, vol_pkms2)
             run.move_volume(reagent=liquid, source=source,
-                            dest=dest, vol=volumen_move, air_gap_vol=1,
+                            dest=pkms2.get_current_position(), vol=vol_pkms2, air_gap_vol=1,
                             pickup_height=pickup_height, disp_height=-10,
                             blow_out=True, post_dispense=True, post_dispense_vol=5)
 
@@ -119,39 +123,7 @@ def run(ctx: protocol_api.ProtocolContext):
         run.finish_step()
 
     ############################################################################
-    # STEP 2: Transfer B6 MS2 - To AW_PLATE
-    ############################################################################
-    if (run.next_step()):
-        run.set_pip("right")  # single 20
-        volumen_move = 5
-        source = tube_rack.wells("B6")[0]
-        liquid = Reagent(name='MS2',
-                         num_wells=1,  # change with num samples
-                         delay=0,
-                         flow_rate_aspirate=3,  # Original 0.5
-                         flow_rate_dispense=3,  # Original 1
-                         flow_rate_aspirate_mix=15,
-                         flow_rate_dispense_mix=25,
-                         reagent_reservoir_volume=528,
-                         h_cono=4,
-                         v_fondo=4 * math.pi * 4 ** 3 / 3
-                         )
-        run.pick_up()
-        for dest in aw_wells:
-
-            [pickup_height, col_change] = run.calc_height(
-                liquid, 4.12*4.12*math.pi, volumen_move)
-            run.move_volume(reagent=liquid, source=source,
-                            dest=dest, vol=volumen_move, air_gap_vol=1,
-                            pickup_height=pickup_height, disp_height=-10,
-                            blow_out=True, post_dispense=True, post_dispense_vol=5)
-
-        run.drop_tip()
-
-        run.finish_step()
-
-    ############################################################################
-    # STEP 3: Slot 3 -2 beats_PK AW
+    # STEP 2: Slot 3 -2 beats_PK AW
     ############################################################################
     if (run.next_step()):
         ############################################################################
@@ -165,41 +137,30 @@ def run(ctx: protocol_api.ProtocolContext):
                         flow_rate_aspirate_mix=4,
                         rinse=True,
                         delay=2,
-                        reagent_reservoir_volume=30000,
-                        num_wells=3,
+                        reagent_reservoir_volume=vol_beads*(NUM_SAMPLES+1),
                         h_cono=1.95,
                         v_fondo=695,
                         rinse_loops=3)
 
+        beads.set_positions([tube_rack.wells("A6"),tube_rack.wells("B6")])
         air_gap_vol = 5
         disposal_height = -5
-        pickup_height = 1
-        beads.reagent_reservoir = beads_slot.rows()[0][0:3]
-        pool_area = 8.3*71.1
-
-        for destination in aw_wells_multi:
-            run.pick_up()
-            vol = 150
-            vol_min = 1000
-            [pickup_height, col_change] = run.calc_height(
-                beads, pool_area, vol*8, extra_volume=vol_min)
-            run.move_volume(reagent=beads, source=beads.reagent_reservoir[beads.col],
-                            dest=destination, vol=vol, air_gap_vol=air_gap_vol,
-                            pickup_height=pickup_height, disp_height=disposal_height,
-                            rinse=True, blow_out=True)
-            run.change_tip()
-            vol = 125
-            [pickup_height, col_change] = run.calc_height(
-                beads, pool_area, vol*8, extra_volume=vol_min)
-            run.move_volume(reagent=beads, source=beads.reagent_reservoir[beads.col],
-                            dest=destination, vol=vol, air_gap_vol=air_gap_vol,
-                            pickup_height=pickup_height, disp_height=disposal_height,
-                            rinse=True, blow_out=True)
-
-            run.custom_mix(beads, location=destination, vol=150,
-                           rounds=3, blow_out=True, mix_height=0)
-
-            run.drop_tip()
+        
+        for destination in aw_wells:
+            
+            volumes = beads.divide_volume(vol_beads,180)
+            for vol in volumes:
+                run.pick_up()
+                pickup_height = beads.calc_height(
+                    beads, pool_area, vol, extra_volume=vol_min)
+                run.move_volume(reagent=beads, source=beads.get_current_position(),
+                                dest=destination, vol=vol, air_gap_vol=air_gap_vol,
+                                pickup_height=pickup_height, disp_height=disposal_height,
+                                rinse=True, blow_out=True)
+                
+                run.custom_mix(beads, location=destination, vol=vol/2,
+                            rounds=3, blow_out=True, mix_height=0)
+                run.drop_tip()
 
         run.finish_step()
 
@@ -557,175 +518,3 @@ class ProtocolRun:
             # ctx._hw_manager.hardware.set_button_light(0,0,1)
             time.sleep(0.3)
             self.stop_lights()
-<<<<<<< HEAD
-
-
-def run(ctx: protocol_api.ProtocolContext):
-    # Init protocol run
-    run = ProtocolRun(ctx)
-    run.comment("You are about to run %s samples\n STEPS:%s" % (NUM_SAMPLES,steps), add_hash=True)
-    run.pause("Are you sure the set up is correct? Check the desk before continue")
-    
-    # Define stesp
-    run.add_step(
-        description="Transfer PK A6 - To AW_PLATE Single Slot1 -> Slot2")  # 1
-    run.add_step(description="Transfer MS2 B6 - To AW_PLATE Single 1->2")  # 4
-    run.add_step(description="Transfer Beats 3 - 2 Multi and mix")  # 3
-
-    # execute avaliaible steps
-    run.init_steps(steps)
-
-    ##################################
-
-    # Tube rack
-    tube_rack = ctx.load_labware(
-        'opentrons_24_tuberack_nest_1.5ml_screwcap', 4)
-
-    # Destination plate SLOT 2
-    if(ctx.is_simulating()):
-        aw_slot = ctx.load_labware(
-            'opentrons_96_aluminumblock_generic_pcr_strip_200ul', 5)
-    else:
-        aw_slot = ctx.load_labware(
-            'axygen_96_wellplate_2000ul', 5)
-
-    aw_wells = aw_slot.wells()[:NUM_SAMPLES]
-    aw_wells_multi = aw_slot.rows()[0][:num_cols]
-
-    # Magnetic Beads Pool
-    beads_slot = ctx.load_labware(
-        'nest_12_reservoir_15ml', 6)
-    beads_wells_multi = beads_slot.rows()[0][:num_cols]
-
-    # Mount pippets and set racks
-    # Tipracks20_multi
-    tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 7)
-    tips300_1 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 8)
-    tips300_2 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 9)
-
-    run.mount_right_pip('p20_single_gen2', tip_racks=[tips20], capacity=20)
-    run.mount_left_pip('p300_multi_gen2', tip_racks=[
-                       tips300_1, tips300_2], capacity=200, multi=True)
-
-    ############################################################################
-    # STEP 1: Transfer A6 - To AW_PLATE
-    ############################################################################
-    if (run.next_step()):
-        run.set_pip("right")  # single 20
-        volumen_move = 5
-        source = tube_rack.wells("A6")[0]
-        liquid = Reagent(name='Proteinasa K',
-                         num_wells=1,  # change with num samples
-                         flow_rate_aspirate=0.75,  # Original 0.5
-                         flow_rate_dispense=0.5,  # Original 1
-                         flow_rate_aspirate_mix=3,
-                         flow_rate_dispense_mix=3,
-                         reagent_reservoir_volume=1000,
-                         h_cono=4,
-                         v_fondo=4 * math.pi * 4 ** 3 / 3
-                         )
-
-        run.pick_up()
-        for dest in aw_wells:
-            [pickup_height, col_change] = run.calc_height(
-                liquid, 4.12*4.12*math.pi, volumen_move)
-            run.move_volume(reagent=liquid, source=source,
-                            dest=dest, vol=volumen_move, air_gap_vol=1,
-                            pickup_height=pickup_height, disp_height=-10,
-                            blow_out=True, post_dispense=True, post_dispense_vol=5)
-
-        run.drop_tip()
-        run.finish_step()
-
-    ############################################################################
-    # STEP 2: Transfer B6 MS2 - To AW_PLATE
-    ############################################################################
-    if (run.next_step()):
-        run.set_pip("right")  # single 20
-        volumen_move = 5
-        source = tube_rack.wells("B6")[0]
-        liquid = Reagent(name='MS2',
-                         num_wells=1,  # change with num samples
-                         delay=0,
-                         flow_rate_aspirate=3,  # Original 0.5
-                         flow_rate_dispense=0.5,  # Original 1
-                         flow_rate_aspirate_mix=3,
-                         flow_rate_dispense_mix=3,
-                         reagent_reservoir_volume=1000,
-                         h_cono=4,
-                         v_fondo=4 * math.pi * 4 ** 3 / 3
-                         )
-        run.pick_up()
-        for dest in aw_wells:
-
-            [pickup_height, col_change] = run.calc_height(
-                liquid, 4.12*4.12*math.pi, volumen_move)
-            run.move_volume(reagent=liquid, source=source,
-                            dest=dest, vol=volumen_move, air_gap_vol=1,
-                            pickup_height=pickup_height, disp_height=-10,
-                            blow_out=True, post_dispense=True, post_dispense_vol=5)
-
-        run.drop_tip()
-
-        run.finish_step()
-
-    ############################################################################
-    # STEP 3: Slot 3 -2 beats_PK AW
-    ############################################################################
-    if (run.next_step()):
-        ############################################################################
-        # Light flash end of program
-        run.set_pip("left")  # p300 multi
-        volume = 275
-        beads = Reagent(name='Magnetic beads',
-                        flow_rate_aspirate=0.5,
-                        flow_rate_dispense=0.5,
-                        flow_rate_dispense_mix=4,
-                        flow_rate_aspirate_mix=4,
-                        rinse=True,
-                        delay=2,
-                        reagent_reservoir_volume=30000,
-                        num_wells=3,
-                        h_cono=1.95,
-                        v_fondo=695,
-                        rinse_loops=3)
-
-        air_gap_vol = 5
-        disposal_height = -5
-        pickup_height = 1
-        beads.reagent_reservoir = beads_slot.rows()[0][0:3]
-        pool_area = 8.3*71.1
-
-        for destination in aw_wells_multi:
-            run.pick_up()
-            vol = 150
-            vol_min = 1000
-            [pickup_height, col_change] = run.calc_height(
-                beads, pool_area, vol*8, extra_volume=vol_min)
-            run.move_volume(reagent=beads, source=beads.reagent_reservoir[beads.col],
-                            dest=destination, vol=vol, air_gap_vol=air_gap_vol,
-                            pickup_height=pickup_height, disp_height=disposal_height,
-                            rinse=True, blow_out=True)
-            run.change_tip()
-            vol = 125
-            [pickup_height, col_change] = run.calc_height(
-                beads, pool_area, vol*8, extra_volume=vol_min)
-            run.move_volume(reagent=beads, source=beads.reagent_reservoir[beads.col],
-                            dest=destination, vol=vol, air_gap_vol=air_gap_vol,
-                            pickup_height=pickup_height, disp_height=disposal_height,
-                            rinse=True, blow_out=True)
-
-            run.custom_mix(beads, location=destination, vol=150,
-                           rounds=3, blow_out=True, mix_height=0)
-
-            run.drop_tip()
-
-        run.finish_step()
-
-    run.log_steps_time()
-    run.blink()
-    for c in robot.commands():
-        ctx.comment(c)
-    ctx.comment('Finished! \nMove plate to PCR')
-=======
->>>>>>> a4b5df884a64e8a9d3f30572d61fe82c83835a03
