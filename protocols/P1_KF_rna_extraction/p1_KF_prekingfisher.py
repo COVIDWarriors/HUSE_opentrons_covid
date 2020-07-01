@@ -25,7 +25,7 @@ metadata = {
 ##################
 NUM_SAMPLES = 24
 VOL_SAMPLE = 400 # 200 or 400
-steps = []  # Steps you want to execut
+steps = [2,3,4,5,6]  # Steps you want to execut
 
 # No quitar es seguridad por control + o -
 if(NUM_SAMPLES > 94):
@@ -83,7 +83,6 @@ def run(ctx: protocol_api.ProtocolContext):
         labware_type = 'opentrons_96_aluminumblock_generic_pcr_strip_200ul'    
         aw_slot = ctx.load_labware(labware_type, 5)
 
-    
     aw_wells = aw_slot.wells()[:NUM_SAMPLES]
     aw_wells_multi = aw_slot.rows()[0][:num_cols]
 
@@ -129,7 +128,6 @@ def run(ctx: protocol_api.ProtocolContext):
                         flow_rate_dispense=0.5,
                         flow_rate_dispense_mix=1,
                         flow_rate_aspirate_mix=1,
-                        
                         delay=1,
                         reagent_reservoir_volume=vol_bb*(NUM_SAMPLES+1),
                         h_cono=1.95,
@@ -142,7 +140,6 @@ def run(ctx: protocol_api.ProtocolContext):
         bbuffer.set_positions(beads_slot.rows()[0][0:bbuffer.num_wells])
         air_gap_vol = 5
         disposal_height = -5
-        pickup_height = 1
         
         pool_area = 8.3*71.1
 
@@ -153,7 +150,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 pickup_height = bbuffer.calc_height(pool_area, vol*8)
                 
                 run.move_volume(reagent=bbuffer, source=bbuffer.get_current_position(),
-                            dest=destination, vol=vol, air_gap_vol=air_gap_vol,
+                            dest=destination, vol=vol, air_gap_vol=air_gap_vol,touch_tip=True,
                             pickup_height=pickup_height, disp_height=disposal_height,
                             blow_out=True)
 
@@ -169,9 +166,9 @@ def run(ctx: protocol_api.ProtocolContext):
             pickup_height = bbuffer.calc_height(pool_area, vol)
             for vol in bbuffer.divide_volume(vol_bb,175):
                 pickup_height = bbuffer.calc_height(pool_area, vol)
-                run.move_volume(reagent=bbuffer, source=    bbuffer.get_current_position(),
+                run.move_volume(reagent=bbuffer, source=bbuffer.get_current_position(),
                                 dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
-                                pickup_height=pickup_height, disp_height=disposal_height,
+                                pickup_height=pickup_height, disp_height=disposal_height,touch_tip=True,
                                 blow_out=True)
 
             run.drop_tip()
@@ -291,7 +288,7 @@ def run(ctx: protocol_api.ProtocolContext):
             negative_control_well = eb_slot.wells("G12")[0]
             run.pick_up(tips300["F12"])
             pickup_height= 1
-            
+
             run.move_volume(reagent=wb, source=elution.get_current_position(),
                             dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
                             pickup_height=pickup_height, disp_height=disposal_height,
@@ -430,12 +427,13 @@ class Reagent:
 
     def next_column(self):
         # Move to next position inside reagent
+        self.col =self.col+1
         if(self.col<self.num_wells):
             self.vol_well = self.vol_well_max
         else:
             self.vol_well = self.vol_last_well
-
-        self.col =self.col+1
+        
+        
 
     def calc_height(self, cross_section_area, aspirate_volume,
                     min_height=0.3):
