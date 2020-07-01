@@ -14,18 +14,26 @@ import subprocess
 
 # metadata
 metadata = {
-    'protocolName': 'RNA Extraction PreKingFisher Version 2',
+    'protocolName': 'PK+MS2+Beads RNA Extraction PreKingFisher Version 2',
     'author': 'Matias Bonet & Antoni Morla. based on: Malen Aguirregabiria,Aitor Gastaminza & José Luis Villanueva (jlvillanueva@clinic.cat)',
     'source': 'Hospital Son Espases Palma',
     'apiLevel': '2.3',
-    'description': 'Protocol to prepare plates for KingFisher RNA extraction'
+    'description': 'Protocol for rna extraction'
 }
 
 # Defined variables
 ##################
-NUM_SAMPLES = 16
+NUM_SAMPLES = 96
 VOL_SAMPLE = 200 # 200 or 400
 steps = []  # Steps you want to execut
+
+vol_pkms2 = 10 # 10 microlitros
+vol_beads = 10 #microlitros
+
+
+if(VOL_SAMPLE==400):
+    vol_pkms2=vol_pkms2*2
+    vol_beads=vol_beads*2
 
 # No quitar es seguridad por control + o -
 if(NUM_SAMPLES > 94):
@@ -41,316 +49,121 @@ volume_cone = 57  # Volume in ul that fit in the screwcap cone
 area_section_screwcap = (np.pi * diameter_screwcap**2) / 4
 h_cone = (volume_cone * 3 / area_section_screwcap)
 
-# Calcular volumenes
-if(VOL_SAMPLE == 200):
-    vol_bb = 265
-    vol_wb = 500
-else:
-    vol_bb = 265*2
-    vol_wb = 500*2
-
-vol_etoh = 1000
-vol_eb   = 53
-
-
 # Folder for the log files
-log_folder = 'prekingfisher'
-
+log_folder = 'prekingfisher_1b'
 
 def run(ctx: protocol_api.ProtocolContext):
     # Init protocol run
     run = ProtocolRun(ctx)
- 
-    # Define stesp
-    run.add_step(description="Transfer Binding Buffer Beads 6 - 5 Multi and mix")  # 3
-    run.add_step(description="Pause to pick up deep well plate on slot 5")  # 4
     
-    # Tranfers     
-    run.add_step(description="Slot 2 -> 1 Washing buffer to plate")  # 5
-    run.add_step(description="Slot 2 -> 3 elution buffer to plate")  # 6
-    run.add_step(description="Slot 10 -> 11 etoh to plate")  # 7
+    # Define stesp
+    run.add_step(
+        description="Transfer PK+MS2 A6 - To AW_PLATE Single Slot1 -> Slot2")  # 1
+    run.add_step(description="Transfer Beats 3 - 2 Multi and mix")  # 2
 
     # execute avaliaible steps
     run.init_steps(steps)
 
     ##################################
 
+    # Tube rack
+    tube_rack = ctx.load_labware(
+        'opentrons_24_tuberack_nest_1.5ml_screwcap', 4)
+
     # Destination plate SLOT 2
-    try:
-        labware_type = 'axygen_96_wellplate_2000ul'
-        aw_slot = ctx.load_labware(labware_type, 5)
-    except:
-        labware_type = 'opentrons_96_aluminumblock_generic_pcr_strip_200ul'    
-        aw_slot = ctx.load_labware(labware_type, 5)
+    if(ctx.is_simulating()):
+        aw_slot = ctx.load_labware(
+            'opentrons_96_aluminumblock_generic_pcr_strip_200ul', 5)
+    else:
+        aw_slot = ctx.load_labware(
+            'axygen_96_wellplate_2000ul', 5)
 
-    
     aw_wells = aw_slot.wells()[:NUM_SAMPLES]
-    aw_wells_multi = aw_slot.rows()[0][:num_cols]
-
-    # Magnetic Beads Pool
-    beads_slot = ctx.load_labware(
-        'nest_12_reservoir_15ml', 6)
-    beads_wells_multi = beads_slot.rows()[0][:num_cols]
-
-    # Magnetic Beads Pool
-    wbeb_slot = ctx.load_labware(
-        'nest_12_reservoir_15ml', 2)
-
-    etoh_pool_slot = ctx.load_labware(
-        'nest_1_reservoir_195ml', 10)
-    etoh_pool_wells_multi = etoh_pool_slot.rows()[0][:num_cols]
-
-    wb_slot = ctx.load_labware(labware_type, 1)
-    wb_wells_multi = wb_slot.rows()[0][:num_cols]
-
-    eb_slot = ctx.load_labware(labware_type, 3)
-    eb_wells_multi = eb_slot.rows()[0][:num_cols]
-
-    etoh_slot = ctx.load_labware(labware_type, 11)
-    etoh_wells_multi = etoh_slot.rows()[0][:num_cols]
 
     # Mount pippets and set racks
     # Tipracks20_multi
-    tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 9)
-
-    run.mount_right_pip('p300_single_gen2', tip_racks=[tips300], capacity=200)
-    run.mount_left_pip('p300_multi_gen2', tip_racks=[tips300], capacity=200, multi=True)
+    tips20_1 = ctx.load_labware('opentrons_96_tiprack_20ul', 7)
+    tips20_2 = ctx.load_labware('opentrons_96_tiprack_20ul', 8)
+    
+    run.mount_right_pip('p20_single_gen2', tip_racks=[tips20_1,tips20_2], capacity=20)
+    
+    tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 7)
+    
+    run.mount_right_pip('p20_single_gen2', tip_racks=[tips20_1,tips20_2], capacity=20)
 
     ############################################################################
-    # STEP 1: Slot 3 -2 BindingBuffer
+    # STEP 1: Transfer A6 - To AW_PLATE
+    ############################################################################
+    if (run.next_step()):
+        run.set_pip("right")  # single 20
+        volumen_move = 5
+        source = tube_rack.wells("A6")[0]
+        pkms2 = Reagent(
+                         name='PK + MS2',
+                         num_wells=1,  # change with num samples
+                         flow_rate_aspirate=0.75,  # Original 0.5
+                         flow_rate_dispense=3,  # Original 1
+                         reagent_reservoir_volume=vol_pkms2*(NUM_SAMPLES+1),
+                         h_cono=4,
+                         v_fondo=4 * math.pi * 4 ** 3 / 3
+                         )
+        pkms2.set_positions([tube_rack.wells("A5"),tube_rack.wells("B5"),tube_rack.wells("B6")])
+        run.comment(pkms2.get_volumes_fill_print(),add_hash=True)
+
+        run.pick_up()
+        for dest in aw_wells:
+            pickup_height = run.calc_height(
+                liquid, 4.12*4.12*math.pi, vol_pkms2)
+            run.move_volume(reagent=liquid, source=source,
+                            dest=pkms2.get_current_position(), vol=vol_pkms2, air_gap_vol=1,
+                            pickup_height=pickup_height, disp_height=-10,
+                            blow_out=True, post_dispense=True, post_dispense_vol=5)
+
+        run.drop_tip()
+        run.finish_step()
+
+    ############################################################################
+    # STEP 2: Slot 3 -2 beats_PK AW
     ############################################################################
     if (run.next_step()):
         ############################################################################
         # Light flash end of program
         run.set_pip("left")  # p300 multi
-        
-        bbuffer = Reagent(name='Binding Buffer',
+        volume = 275
+        beads = Reagent(name='Magnetic beads',
                         flow_rate_aspirate=0.5,
                         flow_rate_dispense=0.5,
-                        flow_rate_dispense_mix=1,
-                        flow_rate_aspirate_mix=1,
+                        flow_rate_dispense_mix=4,
+                        flow_rate_aspirate_mix=4,
                         rinse=True,
-                        delay=1,
-                        reagent_reservoir_volume=vol_bb*(NUM_SAMPLES+1),
+                        delay=2,
+                        reagent_reservoir_volume=vol_beads*(NUM_SAMPLES+1),
                         h_cono=1.95,
                         v_fondo=695,
                         rinse_loops=3)
-        
-        run.comment(bbuffer.get_volumes_fill_print(),add_hash=True)
 
-        #First 3 rows in this casehegi
-        bbuffer.set_positions(beads_slot.rows()[0][0:bbuffer.num_wells])
+        beads.set_positions([tube_rack.wells("A6"),tube_rack.wells("B6")])
         air_gap_vol = 5
         disposal_height = -5
-        pickup_height = 1
         
-        pool_area = 8.3*71.1
-
-        run.pick_up()
-        for destination in aw_wells_multi:
+        for destination in aw_wells:
             
-            for vol in bbuffer.divide_volume(vol_bb,175):
-                pickup_height = bbuffer.calc_height(pool_area, vol*8)
+            volumes = beads.divide_volume(vol_beads,180)
+            for vol in volumes:
+                run.pick_up()
+                pickup_height = beads.calc_height(
+                    beads, pool_area, vol, extra_volume=vol_min)
+                run.move_volume(reagent=beads, source=beads.get_current_position(),
+                                dest=destination, vol=vol, air_gap_vol=air_gap_vol,
+                                pickup_height=pickup_height, disp_height=disposal_height,
+                                rinse=True, blow_out=True)
                 
-                run.move_volume(reagent=bbuffer, source=bbuffer.get_current_position(),
-                            dest=destination, vol=vol, air_gap_vol=air_gap_vol,
-                            pickup_height=pickup_height, disp_height=disposal_height,
-                            rinse=True, blow_out=True)
-
-
-        run.drop_tip()
-
-        # Manual negative control
-        if(NUM_SAMPLES<94):
-            #set up negative control
-            run.set_pip("right")
-            run.pick_up(tips300["H12"])
-            negative_control_well = aw_slot.wells("G12")[0]
-
-            for vol in bbuffer.divide_volume(vol_bb,175):
-                pickup_height = bbuffer.calc_height(pool_area, vol)
-                run.move_volume(reagent=bbuffer, source=    bbuffer.get_current_position(),
-                                dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
-                                pickup_height=pickup_height, disp_height=disposal_height,
-                                rinse=True, blow_out=True)
-
-            run.drop_tip()
-        run.finish_step()
-
-    ############################################################################
-    # STEP 2: Pause, get DW replace tip racks
-    ############################################################################
-    if (run.next_step()):
-        ############################################################################
-        # Light flash end of program
-        run.blink(5)
-        run.pause("Get deepwell Binding buffer from Slot 5")
-        run.finish_step()
-        
-        
-    ############################################################################
-    # STEP 3: Slot 2 -> 1 Washing buffer to plate
-    ############################################################################
-    if (run.next_step()):
-        ############################################################################
-        # Light flash end of program
-        run.set_pip("left")  # p300 multi
-        volume = vol_wb
-        wb = Reagent(name='WB Wash buffer',
-                        flow_rate_aspirate=0.5,
-                        flow_rate_dispense=0.5,
-                        flow_rate_dispense_mix=1,
-                        flow_rate_aspirate_mix=1,
-                        delay=1,
-                        reagent_reservoir_volume=vol_wb*(NUM_SAMPLES+1),
-                        h_cono=1.95,
-                        v_fondo=695,
-                        rinse_loops=3)
-
-        run.comment(wb.get_volumes_fill_print(),add_hash=True)
-        wb.set_positions(wbeb_slot.rows()[0][0:wb.num_wells])
-
-        air_gap_vol = 1
-        disposal_height = -5
-        
-        pool_area = 8.3*71.1
-
-        run.pick_up()
-        for destination in wb_wells_multi:            
-            for vol in wb.divide_volume(volume,175):
-                pickup_height= wb.calc_height(
-                    pool_area, vol*8)
-
-                run.move_volume(reagent=wb, source=wb.get_current_position(),
-                                dest=destination, vol=vol, air_gap_vol=air_gap_vol,
-                                pickup_height=pickup_height, disp_height=disposal_height,
-                                blow_out=True)
-        run.drop_tip()
-
-        # Manual negative control
-        if(NUM_SAMPLES<94):
-            #set up negative control
-            run.set_pip("right")
-            negative_control_well = wb_slot.wells("G12")[0]
-            run.pick_up(tips300["G12"])
-            
-            for vol in wb.divide_volume(volume,175):
-                pickup_height= wb.calc_height(
-                    pool_area, vol)
-
-                run.move_volume(reagent=wb, source=wb.get_current_position(),
-                                dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
-                                pickup_height=pickup_height, disp_height=disposal_height,
-                                blow_out=True)
-
-            run.drop_tip()
+                run.custom_mix(beads, location=destination, vol=vol/2,
+                            rounds=3, blow_out=True, mix_height=0)
+                run.drop_tip()
 
         run.finish_step()
-    
-    ############################################################################
-    # STEP 4: Slot 2 -> 3 elution buffer to plate
-    ############################################################################
-    if (run.next_step()):
-        ############################################################################
-        # Light flash end of program
-        run.set_pip("left")  # p300 multi
-        
-        elution = Reagent(name='Elution Buffer',
-                        flow_rate_aspirate=2,
-                        flow_rate_dispense=2,
-                        flow_rate_dispense_mix=4,
-                        flow_rate_aspirate_mix=4,
-                        reagent_reservoir_volume=vol_eb*(NUM_SAMPLES+1),
-                        delay=1, 
-                        num_wells=1,
-                        h_cono=1.95,
-                        v_fondo=695,
-                        rinse_loops=3)
-        run.comment(elution.get_volumes_fill_print(),add_hash=True)
-        elution.set_positions(wbeb_slot.rows()[0][11:12])
-        
-        air_gap_vol = 1
-        disposal_height = -5
-        
-        pool_area = 8.3*71.1
 
-        run.pick_up()
-        for destination in eb_wells_multi:            
-            run.move_volume(reagent=elution, source=elution.get_current_position(),
-                                dest=destination, vol=vol, air_gap_vol=air_gap_vol,
-                                pickup_height=pickup_height, disp_height=disposal_height,
-                                rinse=True, blow_out=True)
-        run.drop_tip()
-
-        # Manual negative control
-        if(NUM_SAMPLES<94):
-            #set up negative control
-            run.set_pip("right")
-            negative_control_well = eb_slot.wells("G12")[0]
-            run.pick_up(tips300["F12"])
-            run.move_volume(reagent=wb, source=elution.get_current_position(),
-                            dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
-                            pickup_height=pickup_height, disp_height=disposal_height,
-                            rinse=True, blow_out=True)
-
-            run.drop_tip()
-            
-        run.finish_step()
-    
-    # ############################################################################
-    # # STEP 5: Slot 10 -> 11 etoh to plate
-    # ############################################################################
-    if (run.next_step()):
-        ############################################################################
-        run.set_pip("left")  # p300 multi
-        etoh = Reagent(name='ETOH',
-                        flow_rate_aspirate=1,
-                        flow_rate_dispense=1,
-                        flow_rate_dispense_mix=4,
-                        flow_rate_aspirate_mix=4,
-                        delay=1,
-                        reagent_reservoir_volume=vol_etoh*(NUM_SAMPLES+1),
-                        vol_well_max=195000,
-                        num_wells=1,
-                        h_cono=1.95,
-                        v_fondo=695)
-
-        run.comment(etoh.get_volumes_fill_print(),add_hash=True)
-
-        air_gap_vol = 5
-        disposal_height = -5
-        
-        pool_area = 8.3*71.1
-        pickup_height = 1
-
-        run.pick_up()
-        for destination in etoh_wells_multi:            
-            volume_list = etoh.divide_volume(vol_etoh,175)
-            for vol in volume_list:
-                run.move_volume(reagent=etoh, source=etoh_pool_wells_multi[0],
-                                dest=destination, vol=vol, air_gap_vol=air_gap_vol,
-                                pickup_height=1, disp_height=disposal_height,
-                                rinse=True, blow_out=True)
-            
-        
-        run.drop_tip()
-
-        #Negative control if less than 94
-        if(NUM_SAMPLES<94):
-            #set up negative control
-            run.set_pip("right")
-            negative_control_well = etoh_slot.wells("G12")[0]
-            run.pick_up(tips300["E12"])
-            volume_list = etoh.divide_volume(vol_etoh,175)
-            for vol in volume_list:
-                run.move_volume(reagent=etoh, source=etoh_pool_wells_multi[0],
-                                dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
-                                pickup_height=1, disp_height=disposal_height,
-                                rinse=True, blow_out=True)
-            run.drop_tip()
-
-        run.finish_step()
-    
     run.log_steps_time()
     run.blink()
     for c in robot.commands():
