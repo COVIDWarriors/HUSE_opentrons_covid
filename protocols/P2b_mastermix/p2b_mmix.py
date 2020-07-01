@@ -53,7 +53,7 @@ log_folder = 'p2b_mmix'
 if NUM_SAMPLES >= 95:
     NUM_SAMPLES = 94
 
-  
+
 air_gap_vol = 10
 air_gap_mmix = 0
 air_gap_sample = 0
@@ -161,6 +161,7 @@ def run(ctx: protocol_api.ProtocolContext):
     run.log_steps_time()
     run.blink(blink_number=num_blinks)
     run.comment('Finished! \nMove plate to PCR')
+
 
 
 
@@ -379,8 +380,7 @@ class ProtocolRun:
     def get_pip_count(self):
         return self.pips[self.selected_pip]["count"]
 
-    def reset_pip_count(self,pip):
-        
+    def reset_pip_count(self,pip):       
         pip.reset_tipracks()
         self.pips[self.selected_pip]["count"] = 0
 
@@ -525,3 +525,4 @@ class ProtocolRun:
             # ctx._hw_manager.hardware.set_button_light(0,0,1)
             time.sleep(0.3)
             self.stop_lights()
+
