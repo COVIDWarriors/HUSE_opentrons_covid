@@ -68,6 +68,7 @@ MMIX_available = {'Termofisher':
                       "sources": ["D3", "C3", "B3"],
                       "dest": "D6",
                       "volume_mmix": 15,
+                      "positive_control": "A6"
 
                   }
                   }
@@ -76,7 +77,7 @@ MMIX_available = {'Termofisher':
 MMIX_make = MMIX_available[select_mmix]
 MMIX_make["volumes"] = []
 for needed_vol in MMIX_make["recipe"]:
-    MMIX_make["volumes"].append(needed_vol * NUM_SAMPLES * 1.1)
+    MMIX_make["volumes"].append(needed_vol * (NUM_SAMPLES+2) * 1.1)
 # Total volume of mastermix that will be prepared
 MMIX_make["volume_available"] = sum(MMIX_make["volumes"])
 
@@ -669,7 +670,7 @@ def run(ctx: protocol_api.ProtocolContext):
         # mmix to positive and negative control
         #    -> Positive
         run.comment('MMIX to positive recipe')
-        run.move_volume(reagent=positive_control, source=tuberack.wells('D6')[0],
+        run.move_volume(reagent=MMIX, source=MMIX_destination[0],
                         dest=pcr_plate.wells('H12')[0],
                         vol=volume_elution, air_gap_vol=air_gap_sample,
                         pickup_height=3, disp_height=-10,
@@ -677,7 +678,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
         #    -> Negative
         run.comment('MMIX to negative recipe')
-        run.move_volume(reagent=negative_control, source=tuberack.wells('D6')[0],
+        run.move_volume(reagent=MMIX, source=MMIX_destination[0],
                         dest=pcr_plate.wells('G12')[0],
                         vol=volume_elution, air_gap_vol=air_gap_sample,
                         pickup_height=3, disp_height=-10,
@@ -697,7 +698,7 @@ def run(ctx: protocol_api.ProtocolContext):
         run.pick_up()
 
         # Positive Control
-        run.move_volume(reagent=positive_control, source=tuberack.wells('A6')[0],
+        run.move_volume(reagent=positive_control, source=tuberack.wells(MMIX_make["positive_control"])[0],
                         dest=pcr_plate.wells('H12')[0],
                         vol=volume_elution, air_gap_vol=air_gap_sample,
                         pickup_height=0, disp_height=-10,
