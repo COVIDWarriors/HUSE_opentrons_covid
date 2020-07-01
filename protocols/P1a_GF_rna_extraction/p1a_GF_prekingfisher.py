@@ -451,8 +451,10 @@ def run(ctx: protocol_api.ProtocolContext):
         liquid = Reagent(name='Proteinasa K',
                          num_wells=1,  # change with num samples
                          flow_rate_aspirate=0.75,  # Original 0.5
-                         flow_rate_dispense=3,  # Original 1
-                         reagent_reservoir_volume=528,
+                         flow_rate_dispense=0.5,  # Original 1
+                         flow_rate_aspirate_mix=3,
+                         flow_rate_dispense_mix=3,
+                         reagent_reservoir_volume=1000,
                          h_cono=4,
                          v_fondo=4 * math.pi * 4 ** 3 / 3
                          )
@@ -480,10 +482,10 @@ def run(ctx: protocol_api.ProtocolContext):
                          num_wells=1,  # change with num samples
                          delay=0,
                          flow_rate_aspirate=3,  # Original 0.5
-                         flow_rate_dispense=3,  # Original 1
-                         flow_rate_aspirate_mix=15,
-                         flow_rate_dispense_mix=25,
-                         reagent_reservoir_volume=528,
+                         flow_rate_dispense=0.5,  # Original 1
+                         flow_rate_aspirate_mix=3,
+                         flow_rate_dispense_mix=3,
+                         reagent_reservoir_volume=1000,
                          h_cono=4,
                          v_fondo=4 * math.pi * 4 ** 3 / 3
                          )
