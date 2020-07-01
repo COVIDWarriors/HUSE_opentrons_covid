@@ -18,7 +18,7 @@ metadata = {
     'author': 'Matias Bonet & Antoni Morla. based on: Malen Aguirregabiria,Aitor Gastaminza & José Luis Villanueva (jlvillanueva@clinic.cat)',
     'source': 'Hospital Son Espases Palma',
     'apiLevel': '2.3',
-    'description': 'Protocol for rna extraction'
+    'description': 'Protocol to prepare plates for KingFisher RNA extraction'
 }
 
 '''
@@ -27,8 +27,8 @@ metadata = {
 '''
 # Defined variables
 ##################
-NUM_SAMPLES = 96
-VOL_SAMPLE = 400 # or 400
+NUM_SAMPLES = 16
+VOL_SAMPLE = 200 # 200 or 400
 steps = []  # Steps you want to execut
 
 # No quitar es seguridad por control + o -
@@ -54,7 +54,7 @@ else:
     vol_wb = 500*2
 
 vol_etoh = 1000
-vol_eb   = 50
+vol_eb   = 53
 
 
 # Folder for the log files
@@ -368,7 +368,7 @@ class ProtocolRun:
         pipet = self.get_current_pip()
         if rinse == True:
             self.custom_mix(reagent, location=source, vol=vol,
-                            rounds=reagent.rinse_loops, blow_out=True, mix_height=0,source_height=pickup_height,
+                            rounds=reagent.rinse_loops, blow_out=True, mix_height=1, source_height=pickup_height,
                             x_offset=x_offset)
         # SOURCE
         s = source.bottom(pickup_height).move(Point(x=x_offset[0]))
@@ -412,7 +412,6 @@ def run(ctx: protocol_api.ProtocolContext):
     # Init protocol run
     run = ProtocolRun(ctx)
  
-
     # Define stesp
     run.add_step(description="Transfer Binding Buffer Beads 6 - 5 Multi and mix")  # 3
     run.add_step(description="Pause to pick up deep well plate on slot 5")  # 4
