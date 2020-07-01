@@ -1,3 +1,3 @@
 import opentrons.simulate
-protocol_file = open('p1_GF_rna_extraction.py')
+protocol_file = open('p1a_GF_prekingfisher.py')
 opentrons.simulate.simulate(protocol_file)
