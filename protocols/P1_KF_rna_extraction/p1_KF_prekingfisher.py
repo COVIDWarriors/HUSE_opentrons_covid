@@ -386,6 +386,7 @@ class Reagent:
             self.num_wells = num_wells
             self.vol_well_max = self.reagent_reservoir_volume/self.num_wells
             self.vol_last_well = self.reagent_reservoir_volume/self.num_wells
+            self.vol_well = self.vol_last_well
         else:
             self.vol_well_max = vol_well_max-self.v_cono
             num_wells = math.floor(self.reagent_reservoir_volume/self.vol_well_max)
