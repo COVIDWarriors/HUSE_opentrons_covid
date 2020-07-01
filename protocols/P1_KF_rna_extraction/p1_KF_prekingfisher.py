@@ -23,8 +23,8 @@ metadata = {
 
 # Defined variables
 ##################
-NUM_SAMPLES = 16
-VOL_SAMPLE = 200 # 200 or 400
+NUM_SAMPLES = 24
+VOL_SAMPLE = 400 # 200 or 400
 steps = []  # Steps you want to execut
 
 # No quitar es seguridad por control + o -
@@ -129,7 +129,6 @@ def run(ctx: protocol_api.ProtocolContext):
                         flow_rate_dispense=0.5,
                         flow_rate_dispense_mix=1,
                         flow_rate_aspirate_mix=1,
-                        rinse=True,
                         delay=1,
                         reagent_reservoir_volume=vol_bb*(NUM_SAMPLES+1),
                         h_cono=1.95,
@@ -155,7 +154,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 run.move_volume(reagent=bbuffer, source=bbuffer.get_current_position(),
                             dest=destination, vol=vol, air_gap_vol=air_gap_vol,
                             pickup_height=pickup_height, disp_height=disposal_height,
-                            rinse=True, blow_out=True)
+                            blow_out=True)
 
 
         run.drop_tip()
@@ -172,7 +171,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 run.move_volume(reagent=bbuffer, source=    bbuffer.get_current_position(),
                                 dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
                                 pickup_height=pickup_height, disp_height=disposal_height,
-                                rinse=True, blow_out=True)
+                                blow_out=True)
 
             run.drop_tip()
         run.finish_step()
@@ -279,7 +278,7 @@ def run(ctx: protocol_api.ProtocolContext):
             run.move_volume(reagent=elution, source=elution.get_current_position(),
                                 dest=destination, vol=vol, air_gap_vol=air_gap_vol,
                                 pickup_height=pickup_height, disp_height=disposal_height,
-                                rinse=True, blow_out=True)
+                                blow_out=True)
         run.drop_tip()
 
         # Manual negative control
@@ -291,7 +290,7 @@ def run(ctx: protocol_api.ProtocolContext):
             run.move_volume(reagent=wb, source=elution.get_current_position(),
                             dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
                             pickup_height=pickup_height, disp_height=disposal_height,
-                            rinse=True, blow_out=True)
+                            blow_out=True)
 
             run.drop_tip()
             
@@ -311,6 +310,7 @@ def run(ctx: protocol_api.ProtocolContext):
                         delay=1,
                         reagent_reservoir_volume=vol_etoh*(NUM_SAMPLES+1),
                         vol_well_max=195000,
+                        rinse=True,
                         num_wells=1,
                         h_cono=1.95,
                         v_fondo=695)
