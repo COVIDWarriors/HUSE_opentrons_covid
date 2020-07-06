@@ -23,9 +23,9 @@ metadata = {
 
 # Defined variables
 ##################
-NUM_SAMPLES = 24
-VOL_SAMPLE = 400 # 200 or 400
-steps = [2,3,4,5,6]  # Steps you want to execut
+NUM_SAMPLES = 96
+VOL_SAMPLE = 200 # 200 or 400
+steps = range(2,7)  # Steps you want to execut
 
 # No quitar es seguridad por control + o -
 if(NUM_SAMPLES > 94):
@@ -136,7 +136,7 @@ def run(ctx: protocol_api.ProtocolContext):
         
         run.comment(bbuffer.get_volumes_fill_print(),add_hash=True)
 
-        #First 3 rows in this casehegi
+        #First 3 rows in this case
         bbuffer.set_positions(beads_slot.rows()[0][0:bbuffer.num_wells])
         air_gap_vol = 5
         disposal_height = -5
@@ -152,7 +152,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 run.move_volume(reagent=bbuffer, source=bbuffer.get_current_position(),
                             dest=destination, vol=vol, air_gap_vol=air_gap_vol,touch_tip=True,
                             pickup_height=pickup_height, disp_height=disposal_height,
-                            blow_out=True)
+                            )
 
 
         run.drop_tip()
@@ -168,8 +168,8 @@ def run(ctx: protocol_api.ProtocolContext):
                 pickup_height = bbuffer.calc_height(pool_area, vol)
                 run.move_volume(reagent=bbuffer, source=bbuffer.get_current_position(),
                                 dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
-                                pickup_height=pickup_height, disp_height=disposal_height,touch_tip=True,
-                                blow_out=True)
+                                pickup_height=pickup_height-2, disp_height=disposal_height,touch_tip=True,
+                                )
 
             run.drop_tip()
         run.finish_step()
@@ -220,8 +220,8 @@ def run(ctx: protocol_api.ProtocolContext):
 
                 run.move_volume(reagent=wb, source=wb.get_current_position(),
                                 dest=destination, vol=vol, air_gap_vol=air_gap_vol,
-                                pickup_height=pickup_height, disp_height=disposal_height,
-                                blow_out=True)
+                                pickup_height=pickup_height, disp_height=disposal_height,touch_tip=True,
+                                )
         run.drop_tip()
 
         # Manual negative control
@@ -237,8 +237,8 @@ def run(ctx: protocol_api.ProtocolContext):
 
                 run.move_volume(reagent=wb, source=wb.get_current_position(),
                                 dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
-                                pickup_height=pickup_height, disp_height=disposal_height,
-                                blow_out=True)
+                                pickup_height=pickup_height-2, disp_height=disposal_height, touch_tip=True,
+                                )
 
             run.drop_tip()
 
@@ -276,7 +276,7 @@ def run(ctx: protocol_api.ProtocolContext):
             run.move_volume(reagent=elution, source=elution.get_current_position(),
                                 dest=destination, vol=vol_eb, air_gap_vol=air_gap_vol,
                                 pickup_height=pickup_height, disp_height=disposal_height,
-                                blow_out=True)
+                                touch_tip=True, rinse=True)
         run.drop_tip()
 
         # Manual negative control
@@ -289,8 +289,8 @@ def run(ctx: protocol_api.ProtocolContext):
 
             run.move_volume(reagent=wb, source=elution.get_current_position(),
                             dest=negative_control_well, vol=vol_eb, air_gap_vol=air_gap_vol,
-                            pickup_height=pickup_height, disp_height=disposal_height,
-                            blow_out=True)
+                            pickup_height=pickup_height, disp_height=disposal_height, touch_tip=True,
+                            rinse=True)
 
             run.drop_tip()
             
@@ -330,7 +330,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 run.move_volume(reagent=etoh, source=etoh_pool_wells_multi[0],
                                 dest=destination, vol=vol, air_gap_vol=air_gap_vol,
                                 pickup_height=1, disp_height=disposal_height,
-                                rinse=True, blow_out=True)
+                                rinse=True)
             
         
         run.drop_tip()
@@ -346,7 +346,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 run.move_volume(reagent=etoh, source=etoh_pool_wells_multi[0],
                                 dest=negative_control_well, vol=vol, air_gap_vol=air_gap_vol,
                                 pickup_height=1, disp_height=disposal_height,
-                                rinse=True, blow_out=True)
+                                rinse=True, touch_tip=True)
             run.drop_tip()
 
         run.finish_step()
