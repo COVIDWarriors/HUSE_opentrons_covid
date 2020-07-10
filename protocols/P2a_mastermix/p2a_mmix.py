@@ -28,6 +28,7 @@ metadata = {
 ##################
 remove_termoblock = False
 stop_termoblock = True
+temperature_pause = False
 
 # Check stop termoblock when remove termoblock
 if remove_termoblock == True:
@@ -35,11 +36,11 @@ if remove_termoblock == True:
 
 # Defined variables
 ##################
-NUM_SAMPLES = 16
-steps = []  # Steps you want to execute
-temp = 27  # Define termoblock temperature
+NUM_SAMPLES = 96
+steps = [1,2]  # Steps you want to execute
+temp = 10  # Define termoblock temperature
 num_blinks = 5  # Define number of advisor temperature blinks
-air_gap_vol = 10
+air_gap_vol = 1
 air_gap_mmix = 0
 air_gap_sample = 0
 log_folder = 'p2a_MMIX'
@@ -64,14 +65,14 @@ num_cols = math.ceil(NUM_SAMPLES/8)
 #############################################################
 MMIX_available = {'Termofisher':
                   {
-                      "recipe": [8.25, 6.25, 1.25],
+                      "recipe": [7.5, 6.25, 1.25],
                       "sources": ["D3", "C3", "B3"],
                       "dest": "D6",
                       "volume_mmix": 15,
                       "positive_control": "A6"
 
                   }
-                  }
+                }
 
 
 MMIX_make = MMIX_available[select_mmix]
@@ -98,22 +99,15 @@ def run(ctx: protocol_api.ProtocolContext):
 
     ##################################
     # Define desk
-    tempdeck = ctx.load_module('tempdeck', '10')
+    tempdeck = ctx.load_module('tempdeck', 10)
     tuberack = tempdeck.load_labware(
         'opentrons_24_aluminumblock_generic_2ml_screwcap')
 
     # PCR
     pcr_plate = ctx.load_labware(
-        'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '11')
+        'opentrons_96_aluminumblock_generic_pcr_strip_200ul', 11)
 
-    # Eluted from King fisher/ Manual / Other
-    try:
-        elution_plate = ctx.load_labware(
-            'axygen_96_wellplate_2000ul', '5')
-    except:
-        elution_plate = ctx.load_labware(
-            'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '5')
-
+    
     # Tipracks20_multi
     tips20 = ctx.load_labware('opentrons_96_tiprack_20ul', 9)
     tips300 = ctx.load_labware('opentrons_96_filtertiprack_200ul', 7)
@@ -124,11 +118,12 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # Define wells interaction
     # Reagents and their characteristics
-
     mmix_water = Reagent(name='R3_Water',
                          rinse=False,
                          flow_rate_aspirate=1,
                          flow_rate_dispense=1,
+                         flow_rate_aspirate_mix=4,
+                         flow_rate_dispense_mix=4,
                          reagent_reservoir_volume=1000,
                          num_wells=1,  # change with num samples
                          delay=0,
@@ -140,6 +135,8 @@ def run(ctx: protocol_api.ProtocolContext):
                        rinse=True,
                        flow_rate_aspirate=1,
                        flow_rate_dispense=1,
+                       flow_rate_aspirate_mix=4,
+                       flow_rate_dispense_mix=4,
                        reagent_reservoir_volume=1000,
                        num_wells=1,  # change with num samples
                        delay=0,
@@ -151,6 +148,8 @@ def run(ctx: protocol_api.ProtocolContext):
                           rinse=True,
                           flow_rate_aspirate=1,
                           flow_rate_dispense=1,
+                          flow_rate_aspirate_mix=4,
+                          flow_rate_dispense_mix=4,
                           reagent_reservoir_volume=150,
                           num_wells=1,  # change with num samples
                           delay=0,
@@ -162,6 +161,8 @@ def run(ctx: protocol_api.ProtocolContext):
                    rinse=False,
                    flow_rate_aspirate=1,
                    flow_rate_dispense=1,
+                   flow_rate_aspirate_mix=4,
+                   flow_rate_dispense_mix=4,
                    reagent_reservoir_volume=MMIX_make["volume_available"],
                    num_wells=1,  # change with num samples
                    delay=0,
@@ -172,6 +173,8 @@ def run(ctx: protocol_api.ProtocolContext):
                                rinse=False,
                                flow_rate_aspirate=1,
                                flow_rate_dispense=1,
+                               flow_rate_aspirate_mix=4,
+                               flow_rate_dispense_mix=4,
                                reagent_reservoir_volume=100,
                                num_wells=1,  # change with num samples
                                delay=0,
@@ -182,6 +185,8 @@ def run(ctx: protocol_api.ProtocolContext):
                                rinse=False,
                                flow_rate_aspirate=1,
                                flow_rate_dispense=1,
+                               flow_rate_aspirate_mix=4,
+                               flow_rate_dispense_mix=4,
                                reagent_reservoir_volume=100,
                                num_wells=1,  # change with num samples
                                delay=0,
@@ -193,6 +198,8 @@ def run(ctx: protocol_api.ProtocolContext):
                        rinse=False,
                        flow_rate_aspirate=1,
                        flow_rate_dispense=1,
+                       flow_rate_aspirate_mix=4,
+                       flow_rate_dispense_mix=4,
                        reagent_reservoir_volume=0,
                        delay=0,
                        num_wells=num_cols,  # num_cols comes from available columns
@@ -200,17 +207,7 @@ def run(ctx: protocol_api.ProtocolContext):
                        v_fondo=0
                        )
 
-    elution_well = Reagent(name='Elution',
-                           rinse=False,
-                           flow_rate_aspirate=1,
-                           flow_rate_dispense=1,
-                           reagent_reservoir_volume=elution_initial_volume,
-                           delay=0,
-                           num_wells=num_cols,  # num_cols comes from available columns
-                           h_cono=0,
-                           v_fondo=0
-                           )
-
+    
     MMIX_components = [mmix_water, taq_path, covid_assay]
 
     ################################################################################
@@ -224,36 +221,26 @@ def run(ctx: protocol_api.ProtocolContext):
 
     # setup up sample sources and destinations
     pcr_wells = pcr_plate.wells()[:NUM_SAMPLES]
-    elution_wells = elution_plate.wells()[:NUM_SAMPLES]
+    
 
     # check temperature to know if the protocol can start
     tempdeck.set_temperature(temp)
-    for i in range(num_blinks):
-        if tempdeck.temperature == temp:
-            run.blink()
+    run.blink()
+
+    if(temperature_pause):
+        run.pause("Now the temperature is ready")
 
     ############################################################################
     # STEP 1: Make Master MIX
     ############################################################################
     if (run.next_step()):
         run.stop_lights()
-        ctx.pause()
-        run.comment('''Please, check you have set correctly the desk configuration...
-        (SLOT10) Termoblock, with 1000uL of Nuclease-Free Water on D3,
-                                    1000uL of TaqPath Master Mix on C3,
-                                     150uL of Assay Multiplex on B3,
-                                     100uL of Positive Control on A6, and
-                                    Empty 2000uL Screw-cap tube on D6.
-        (SLOT09) 20uL Opentrons Filter Tip Rack.
-        (SLOT07) 200uL Opentrons Filter Tip Rack.
-        (SLOT11) Aluminium Block with a PCR Plate or QS5 PCR Strips.''')
-
+        
         run.comment('Selected MMIX: ' +
                     select_mmix, add_hash=True)
 
         run.set_pip("left")
         run.pick_up()
-        drop = False
         for i, [source] in enumerate(MMIX_components_location):
 
             run.comment('Add component: ' +
@@ -261,10 +248,11 @@ def run(ctx: protocol_api.ProtocolContext):
 
             # Get volumen calculated
             vol = MMIX_make["volumes"][i]
+            drop = False
             # because 20ul is the maximum volume of the tip we will choose 17
             if (vol + air_gap_vol) > run.get_pip_capacity():
                 # calculate what volume should be transferred in each step
-                vol_list = run.divide_volume(vol, run.get_pip_capacity())
+                vol_list = MMIX_components[i].divide_volume(vol, run.get_pip_capacity())
                 for vol in vol_list:
                     # If not in first step we need to change everytime
                     if(i > 0):
@@ -272,7 +260,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
                     run.move_volume(reagent=MMIX_components[i], source=source, dest=MMIX_destination[0],
                                     vol=vol, air_gap_vol=air_gap_vol, pickup_height=0, disp_height=-10,
-                                    blow_out=True)
+                                    rinse=True)
 
                     # If not in first step we need to change everytime
                     if(i > 0):
@@ -284,7 +272,7 @@ def run(ctx: protocol_api.ProtocolContext):
                     run.pick_up()
                 run.move_volume(reagent=MMIX_components[i], source=source, dest=MMIX_destination[0],
                                 vol=vol, air_gap_vol=air_gap_vol, pickup_height=0,
-                                disp_height=-10, blow_out=True)
+                                disp_height=-10, rinse=True)
                 if(i > 0):
                     run.drop_tip()
                     drop = True
@@ -298,7 +286,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 run.comment('Final mix', add_hash=True)
 
                 run.custom_mix(reagent=MMIX, location=MMIX_destination[0], vol=50, rounds=5,
-                               blow_out=True, mix_height=2)
+                            mix_height=2,touch_tip=True)
                 run.drop_tip()
 
         run.finish_step()
@@ -312,25 +300,21 @@ def run(ctx: protocol_api.ProtocolContext):
     if (run.next_step()):
         run.set_pip("right")
         run.pick_up()
-        volumen_mmix = MMIX_make["volume_available"]
+        
         for dest in pcr_wells:
-            [pickup_height, col_change] = run.calc_height(
-                MMIX, area_section_screwcap, MMIX_make["volume_mmix"])
-            # print('Destination: ' + str(dest) + ' Pickup: --> ' + str(pickup_height))
-            run.comment('Start transfer MasterMIX')
+            pickup_height = MMIX.calc_height(area_section_screwcap, MMIX_make["volume_mmix"])
             run.move_volume(reagent=MMIX, source=MMIX_destination[0],
                             dest=dest, vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
                             pickup_height=pickup_height, disp_height=-10,
-                            blow_out=True, touch_tip=True)
+                            touch_tip=True,rinse=True)
             # change
-        # mmix to positive and negative control
-        #    -> Positive
+        
         run.comment('MMIX to positive recipe')
         run.move_volume(reagent=MMIX, source=MMIX_destination[0],
                         dest=pcr_plate.wells('H12')[0],
                         vol=volume_elution, air_gap_vol=air_gap_sample,
                         pickup_height=3, disp_height=-10,
-                        blow_out=True, touch_tip=True, post_airgap=True,)
+                        touch_tip=True,rinse=True)
 
         #    -> Negative
         run.comment('MMIX to negative recipe')
@@ -338,7 +322,7 @@ def run(ctx: protocol_api.ProtocolContext):
                         dest=pcr_plate.wells('G12')[0],
                         vol=volume_elution, air_gap_vol=air_gap_sample,
                         pickup_height=3, disp_height=-10,
-                        blow_out=True, touch_tip=True, post_airgap=True,)
+                        touch_tip=True,rinse=True)
 
         run.drop_tip()
         run.finish_step()
@@ -357,10 +341,10 @@ def run(ctx: protocol_api.ProtocolContext):
         run.move_volume(reagent=positive_control, source=tuberack.wells(MMIX_make["positive_control"])[0],
                         dest=pcr_plate.wells('H12')[0],
                         vol=volume_elution, air_gap_vol=air_gap_sample,
-                        pickup_height=0, disp_height=-10,
-                        blow_out=True, touch_tip=True, post_airgap=True)
+                        pickup_height=0, disp_height=-10
+                       )
         run.custom_mix(reagent=positive_control, location=pcr_plate.wells('H12')[0], vol=8, rounds=3,
-                       blow_out=False, mix_height=2)
+                       mix_height=2, touch_tip=True)
         run.drop_tip()
 
         ####################################
@@ -384,6 +368,7 @@ def run(ctx: protocol_api.ProtocolContext):
         if tempdeck.temperature == temp:
             run.blink()
     run.comment('Finished! \nMove plate to PCR')
+
 
 
 
@@ -412,9 +397,18 @@ class Reagent:
 
         
         if(num_wells!=-1):
-            self.num_wells = num_wells
-            self.vol_well_max = self.reagent_reservoir_volume/self.num_wells
-            self.vol_last_well = self.reagent_reservoir_volume/self.num_wells
+            if(num_wells==1):
+                self.num_wells = num_wells
+                self.vol_well = self.reagent_reservoir_volume
+                self.vol_last_well = self.vol_well
+                self.vol_well_max = vol_well_max
+
+            else:   
+                self.num_wells = num_wells
+                #IF manually made we set up all to have the same
+                self.vol_well_max = self.reagent_reservoir_volume/self.num_wells
+                self.vol_last_well = self.vol_well_max
+                self.vol_well = self.vol_last_well
         else:
             self.vol_well_max = vol_well_max-self.v_cono
             num_wells = math.floor(self.reagent_reservoir_volume/self.vol_well_max)
@@ -453,12 +447,12 @@ class Reagent:
 
     def next_column(self):
         # Move to next position inside reagent
+        self.col =self.col+1
         if(self.col<self.num_wells):
             self.vol_well = self.vol_well_max
         else:
             self.vol_well = self.vol_last_well
 
-        self.col =self.col+1
 
     def calc_height(self, cross_section_area, aspirate_volume,
                     min_height=0.3):
@@ -587,13 +581,13 @@ class ProtocolRun:
         self.mount_pip("left", type, tip_racks, capacity)
 
     def get_current_pip(self):
+        
         return self.pips[self.selected_pip]["pip"]
 
     def get_pip_count(self):
         return self.pips[self.selected_pip]["count"]
 
-    def reset_pip_count(self,pip):
-        
+    def reset_pip_count(self,pip):       
         pip.reset_tipracks()
         self.pips[self.selected_pip]["count"] = 0
 
@@ -611,7 +605,7 @@ class ProtocolRun:
         self.selected_pip = position
 
     def custom_mix(self, reagent, location, vol, rounds, mix_height, blow_out=False,
-                   source_height=3, post_dispense=0, x_offset=[0, 0]):
+                   source_height=3, post_dispense=0, x_offset=[0, 0],touch_tip=False):
         '''
         Function for mixing a given [vol] in the same [location] a x number of [rounds].
         blow_out: Blow out optional [True,False]
@@ -637,6 +631,10 @@ class ProtocolRun:
         if post_dispense > 0:
             pip.dispense(post_dispense, location.top(z=-2))
         
+        if touch_tip == True:
+            pip = self.get_current_pip()
+            pip.touch_tip(speed=20, v_offset=-5, radius=0.9)
+
     def pick_up(self, position=None):
         pip = self.get_current_pip()
         
@@ -682,8 +680,8 @@ class ProtocolRun:
         if self.ctx.is_simulating():
             print("%s\n Press any key to continue " % comment)
 
-    def move_volume(self, reagent, source, dest, vol, air_gap_vol,
-                    pickup_height, disp_height, blow_out=False, touch_tip=False, rinse=False,
+    def move_volume(self, reagent, source, dest, vol, 
+                    pickup_height, disp_height, air_gap_vol = 0,blow_out=False, touch_tip=False, rinse=False,
                     post_dispense=0,x_offset=[0, 0]):
         # x_offset: list with two values. x_offset in source and x_offset in destination i.e. [-1,1]
         # pickup_height: height from bottom where volume

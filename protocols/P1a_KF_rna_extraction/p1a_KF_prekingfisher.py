@@ -171,6 +171,7 @@ def run(ctx: protocol_api.ProtocolContext):
     ctx.comment('Finished! \nMove plate to PCR')
 
 
+
 ##################
 # Custom function
 ##################
@@ -196,9 +197,18 @@ class Reagent:
 
         
         if(num_wells!=-1):
-            self.num_wells = num_wells
-            self.vol_well_max = self.reagent_reservoir_volume/self.num_wells
-            self.vol_last_well = self.reagent_reservoir_volume/self.num_wells
+            if(num_wells==1):
+                self.num_wells = num_wells
+                self.vol_well = self.reagent_reservoir_volume
+                self.vol_last_well = self.vol_well
+                self.vol_well_max = vol_well_max
+
+            else:   
+                self.num_wells = num_wells
+                #IF manually made we set up all to have the same
+                self.vol_well_max = self.reagent_reservoir_volume/self.num_wells
+                self.vol_last_well = self.vol_well_max
+                self.vol_well = self.vol_last_well
         else:
             self.vol_well_max = vol_well_max-self.v_cono
             num_wells = math.floor(self.reagent_reservoir_volume/self.vol_well_max)
@@ -237,12 +247,12 @@ class Reagent:
 
     def next_column(self):
         # Move to next position inside reagent
+        self.col =self.col+1
         if(self.col<self.num_wells):
             self.vol_well = self.vol_well_max
         else:
             self.vol_well = self.vol_last_well
 
-        self.col =self.col+1
 
     def calc_height(self, cross_section_area, aspirate_volume,
                     min_height=0.3):
@@ -371,13 +381,13 @@ class ProtocolRun:
         self.mount_pip("left", type, tip_racks, capacity)
 
     def get_current_pip(self):
+        
         return self.pips[self.selected_pip]["pip"]
 
     def get_pip_count(self):
         return self.pips[self.selected_pip]["count"]
 
-    def reset_pip_count(self,pip):
-        
+    def reset_pip_count(self,pip):       
         pip.reset_tipracks()
         self.pips[self.selected_pip]["count"] = 0
 
@@ -395,7 +405,7 @@ class ProtocolRun:
         self.selected_pip = position
 
     def custom_mix(self, reagent, location, vol, rounds, mix_height, blow_out=False,
-                   source_height=3, post_dispense=0, x_offset=[0, 0]):
+                   source_height=3, post_dispense=0, x_offset=[0, 0],touch_tip=False):
         '''
         Function for mixing a given [vol] in the same [location] a x number of [rounds].
         blow_out: Blow out optional [True,False]
@@ -421,6 +431,10 @@ class ProtocolRun:
         if post_dispense > 0:
             pip.dispense(post_dispense, location.top(z=-2))
         
+        if touch_tip == True:
+            pip = self.get_current_pip()
+            pip.touch_tip(speed=20, v_offset=-5, radius=0.9)
+
     def pick_up(self, position=None):
         pip = self.get_current_pip()
         
@@ -466,8 +480,8 @@ class ProtocolRun:
         if self.ctx.is_simulating():
             print("%s\n Press any key to continue " % comment)
 
-    def move_volume(self, reagent, source, dest, vol, air_gap_vol,
-                    pickup_height, disp_height, blow_out=False, touch_tip=False, rinse=False,
+    def move_volume(self, reagent, source, dest, vol, 
+                    pickup_height, disp_height, air_gap_vol = 0,blow_out=False, touch_tip=False, rinse=False,
                     post_dispense=0,x_offset=[0, 0]):
         # x_offset: list with two values. x_offset in source and x_offset in destination i.e. [-1,1]
         # pickup_height: height from bottom where volume

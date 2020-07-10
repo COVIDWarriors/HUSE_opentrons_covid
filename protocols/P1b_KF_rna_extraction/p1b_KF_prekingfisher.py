@@ -29,12 +29,12 @@ steps = []  # Steps you want to execut
 
 vol_pkms2 = 10 # 10 microlitros
 vol_beads = 10 #microlitros
-disposal_height = -30
+disposal_height = -35
 
 if(VOL_SAMPLE==400):
     vol_pkms2=vol_pkms2*2
     vol_beads=vol_beads*2
-    disposal_height = -20
+    disposal_height = -25
 
 # No quitar es seguridad por control + o -
 if(NUM_SAMPLES > 94):
@@ -404,8 +404,7 @@ class ProtocolRun:
     def get_pip_count(self):
         return self.pips[self.selected_pip]["count"]
 
-    def reset_pip_count(self,pip):
-        
+    def reset_pip_count(self,pip):       
         pip.reset_tipracks()
         self.pips[self.selected_pip]["count"] = 0
 
@@ -423,7 +422,7 @@ class ProtocolRun:
         self.selected_pip = position
 
     def custom_mix(self, reagent, location, vol, rounds, mix_height, blow_out=False,
-                   source_height=3, post_dispense=0, x_offset=[0, 0]):
+                   source_height=3, post_dispense=0, x_offset=[0, 0],touch_tip=False):
         '''
         Function for mixing a given [vol] in the same [location] a x number of [rounds].
         blow_out: Blow out optional [True,False]
@@ -449,6 +448,10 @@ class ProtocolRun:
         if post_dispense > 0:
             pip.dispense(post_dispense, location.top(z=-2))
         
+        if touch_tip == True:
+            pip = self.get_current_pip()
+            pip.touch_tip(speed=20, v_offset=-5, radius=0.9)
+
     def pick_up(self, position=None):
         pip = self.get_current_pip()
         
