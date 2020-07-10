@@ -23,9 +23,9 @@ metadata = {
 
 # Defined variables
 ##################
-NUM_SAMPLES = 96
+NUM_SAMPLES = 94
 VOL_SAMPLE = 200 # 200 or 400
-steps = range(2,7)  # Steps you want to execut
+steps = [] # Steps you want to execute
 
 # No quitar es seguridad por control + o -
 if(NUM_SAMPLES > 94):
@@ -62,13 +62,13 @@ def run(ctx: protocol_api.ProtocolContext):
     run = ProtocolRun(ctx)
  
     # Define stesp
-    run.add_step(description="Transfer Binding Buffer Beads 6 - 5 Multi and mix")  # 3
-    run.add_step(description="Pause to pick up deep well plate on slot 5")  # 4
+    run.add_step(description="Transfer Binding Buffer Beads 6 - 5 Multi and mix")  # 1
+    run.add_step(description="Pause to pick up deep well plate on slot 5")  # 2
     
     # Tranfers     
-    run.add_step(description="Slot 2 -> 1 Washing buffer to plate")  # 5
-    run.add_step(description="Slot 2 -> 3 elution buffer to plate")  # 6
-    run.add_step(description="Slot 10 -> 11 etoh to plate")  # 7
+    run.add_step(description="Slot 2 -> 1 Washing buffer to plate")  # 3
+    run.add_step(description="Slot 2 -> 3 elution buffer to plate")  # 4
+    run.add_step(description="Slot 10 -> 11 etoh to plate")  # 5
 
     # execute avaliaible steps
     run.init_steps(steps)
@@ -124,21 +124,21 @@ def run(ctx: protocol_api.ProtocolContext):
         run.set_pip("left")  # p300 multi
         
         bbuffer = Reagent(name='Binding Buffer',
-                        flow_rate_aspirate=0.5,
-                        flow_rate_dispense=0.5,
-                        flow_rate_dispense_mix=1,
-                        flow_rate_aspirate_mix=1,
+                        flow_rate_aspirate=0.25,
+                        flow_rate_dispense=0.25,
+                        flow_rate_dispense_mix=0.25,
+                        flow_rate_aspirate_mix=0.25,
                         delay=1,
-                        reagent_reservoir_volume=vol_bb*(NUM_SAMPLES+1),
+                        reagent_reservoir_volume=vol_bb*(NUM_SAMPLES+1)*1.1,
                         h_cono=1.95,
                         v_fondo=695,
-                        rinse_loops=3)
+                        )
         
         run.comment(bbuffer.get_volumes_fill_print(),add_hash=True)
 
         #First 3 rows in this case
         bbuffer.set_positions(beads_slot.rows()[0][0:bbuffer.num_wells])
-        air_gap_vol = 5
+        air_gap_vol = 0
         disposal_height = -5
         
         pool_area = 8.3*71.1
@@ -146,14 +146,14 @@ def run(ctx: protocol_api.ProtocolContext):
         run.pick_up()
         for destination in aw_wells_multi:
             
-            for vol in bbuffer.divide_volume(vol_bb,175):
+            for vol in bbuffer.divide_volume(vol_bb,150):
                 pickup_height = bbuffer.calc_height(pool_area, vol*8)
                 
                 run.move_volume(reagent=bbuffer, source=bbuffer.get_current_position(),
-                            dest=destination, vol=vol, air_gap_vol=air_gap_vol,touch_tip=True,
+                            dest=destination, vol=vol, air_gap_vol=0,touch_tip=True,
                             pickup_height=pickup_height, disp_height=disposal_height,
                             )
-
+            #run.change_tip()                
 
         run.drop_tip()
 
@@ -183,8 +183,7 @@ def run(ctx: protocol_api.ProtocolContext):
         run.blink(5)
         run.pause("Get deepwell Binding buffer from Slot 5")
         run.finish_step()
-        
-        
+                
     ############################################################################
     # STEP 3: Slot 2 -> 1 Washing buffer to plate
     ############################################################################
@@ -194,15 +193,15 @@ def run(ctx: protocol_api.ProtocolContext):
         run.set_pip("left")  # p300 multi
         volume = vol_wb
         wb = Reagent(name='WB Wash buffer',
-                        flow_rate_aspirate=0.5,
-                        flow_rate_dispense=0.5,
-                        flow_rate_dispense_mix=1,
-                        flow_rate_aspirate_mix=1,
+                        flow_rate_aspirate=0.25,
+                        flow_rate_dispense=0.25,
+                        flow_rate_dispense_mix=0.25,
+                        flow_rate_aspirate_mix=0.25,
                         delay=1,
-                        reagent_reservoir_volume=vol_wb*(NUM_SAMPLES+1),
+                        reagent_reservoir_volume=vol_wb*(NUM_SAMPLES+1)*1.1,
                         h_cono=1.95,
                         v_fondo=695,
-                        rinse_loops=3)
+                        )
 
         run.comment(wb.get_volumes_fill_print(),add_hash=True)
         wb.set_positions(wbeb_slot.rows()[0][0:wb.num_wells])
@@ -214,7 +213,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
         run.pick_up()
         for destination in wb_wells_multi:            
-            for vol in wb.divide_volume(volume,175):
+            for vol in wb.divide_volume(volume,150):
                 pickup_height= wb.calc_height(
                     pool_area, vol*8)
 
@@ -317,7 +316,7 @@ def run(ctx: protocol_api.ProtocolContext):
 
         run.comment(etoh.get_volumes_fill_print(),add_hash=True)
 
-        air_gap_vol = 5
+        air_gap_vol = 3
         disposal_height = -5
         
         pool_area = 8.3*71.1
@@ -355,10 +354,7 @@ def run(ctx: protocol_api.ProtocolContext):
     run.blink()
     for c in robot.commands():
         ctx.comment(c)
-    ctx.comment('Finished! \nMove plate to PCR')
-
-
-
+    ctx.comment('Finished! Move plate to PCR')
 
 ##################
 # Custom function
@@ -569,7 +565,6 @@ class ProtocolRun:
         self.mount_pip("left", type, tip_racks, capacity)
 
     def get_current_pip(self):
-        
         return self.pips[self.selected_pip]["pip"]
 
     def get_pip_count(self):
@@ -618,7 +613,6 @@ class ProtocolRun:
             pip.blow_out(location.top(z=-2))  # Blow out
         if post_dispense > 0:
             pip.dispense(post_dispense, location.top(z=-2))
-        
         if touch_tip == True:
             pip = self.get_current_pip()
             pip.touch_tip(speed=20, v_offset=-5, radius=0.9)

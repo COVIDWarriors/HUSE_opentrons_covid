@@ -36,8 +36,8 @@ if remove_termoblock == True:
 
 # Defined variables
 ##################
-NUM_SAMPLES = 24
-steps = []  # Steps you want to execute
+NUM_SAMPLES = 96
+steps = [1,2]  # Steps you want to execute
 temp = 10  # Define termoblock temperature
 num_blinks = 5  # Define number of advisor temperature blinks
 air_gap_vol = 1
@@ -65,7 +65,7 @@ num_cols = math.ceil(NUM_SAMPLES/8)
 #############################################################
 MMIX_available = {'Termofisher':
                   {
-                      "recipe": [8.25, 6.25, 1.25],
+                      "recipe": [7.5, 6.25, 1.25],
                       "sources": ["D3", "C3", "B3"],
                       "dest": "D6",
                       "volume_mmix": 15,
@@ -99,13 +99,13 @@ def run(ctx: protocol_api.ProtocolContext):
 
     ##################################
     # Define desk
-    tempdeck = ctx.load_module('tempdeck', '10')
+    tempdeck = ctx.load_module('tempdeck', 10)
     tuberack = tempdeck.load_labware(
         'opentrons_24_aluminumblock_generic_2ml_screwcap')
 
     # PCR
     pcr_plate = ctx.load_labware(
-        'opentrons_96_aluminumblock_generic_pcr_strip_200ul', '11')
+        'opentrons_96_aluminumblock_generic_pcr_strip_200ul', 11)
 
     
     # Tipracks20_multi
