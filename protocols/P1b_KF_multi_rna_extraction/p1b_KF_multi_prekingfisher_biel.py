@@ -23,9 +23,9 @@ metadata = {
 
 # Defined variables
 ##################
-NUM_SAMPLES = 80
+NUM_SAMPLES = 94
 VOL_SAMPLE = 200 # 200 or 400
-steps = []  # Steps you want to execut
+steps = [1]  # Steps you want to execut
 
 vol_pkms2 = 10 # 10 microlitros
 vol_beads = 10 # 10 microlitros

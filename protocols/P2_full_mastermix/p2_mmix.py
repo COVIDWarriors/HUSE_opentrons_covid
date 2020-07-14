@@ -66,7 +66,7 @@ num_cols = math.ceil(NUM_SAMPLES/8)
 #############################################################
 MMIX_available = {'Termofisher':
                   {
-                      "recipe": [8.25, 6.25, 1.25],
+                      "recipe": [7.5, 6.25, 1.25],
                       "sources": ["D3", "C3", "B3"],
                       "dest": "D6",
                       "volume_mmix": 15,

@@ -312,16 +312,16 @@ def run(ctx: protocol_api.ProtocolContext):
         run.comment('MMIX to positive recipe')
         run.move_volume(reagent=MMIX, source=MMIX_destination[0],
                         dest=pcr_plate.wells('H12')[0],
-                        vol=volume_elution, air_gap_vol=air_gap_sample,
-                        pickup_height=3, disp_height=-10,
+                        vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
+                        pickup_height=pickup_height, disp_height=-10,
                         touch_tip=True,rinse=True)
 
         #    -> Negative
         run.comment('MMIX to negative recipe')
         run.move_volume(reagent=MMIX, source=MMIX_destination[0],
                         dest=pcr_plate.wells('G12')[0],
-                        vol=volume_elution, air_gap_vol=air_gap_sample,
-                        pickup_height=3, disp_height=-10,
+                        vol=MMIX_make["volume_mmix"], air_gap_vol=air_gap_mmix,
+                        pickup_height=pickup_height, disp_height=-10,
                         touch_tip=True,rinse=True)
 
         run.drop_tip()
