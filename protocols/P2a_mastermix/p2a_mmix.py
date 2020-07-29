@@ -37,7 +37,7 @@ if remove_termoblock == True:
 # Defined variables
 ##################
 NUM_SAMPLES = 96
-steps = [1,2]  # Steps you want to execute
+steps = [2]  # Steps you want to execute
 temp = 10  # Define termoblock temperature
 num_blinks = 5  # Define number of advisor temperature blinks
 air_gap_vol = 1
@@ -169,6 +169,7 @@ def run(ctx: protocol_api.ProtocolContext):
                    h_cono=h_cone,
                    v_fondo=volume_cone  # V cono
                    )
+
     negative_control = Reagent(name='Negative control',
                                rinse=False,
                                flow_rate_aspirate=1,
@@ -181,6 +182,7 @@ def run(ctx: protocol_api.ProtocolContext):
                                h_cono=h_cone,
                                v_fondo=volume_cone  # V cono
                                )
+
     positive_control = Reagent(name='Positive control',
                                rinse=False,
                                flow_rate_aspirate=1,
@@ -207,7 +209,6 @@ def run(ctx: protocol_api.ProtocolContext):
                        v_fondo=0
                        )
 
-    
     MMIX_components = [mmix_water, taq_path, covid_assay]
 
     ################################################################################
@@ -285,7 +286,7 @@ def run(ctx: protocol_api.ProtocolContext):
                 run.pick_up()
                 run.comment('Final mix', add_hash=True)
 
-                run.custom_mix(reagent=MMIX, location=MMIX_destination[0], vol=50, rounds=5,
+                run.custom_mix(reagent=MMIX, location=MMIX_destination[0], vol=100, rounds=5,
                             mix_height=2,touch_tip=True)
                 run.drop_tip()
 

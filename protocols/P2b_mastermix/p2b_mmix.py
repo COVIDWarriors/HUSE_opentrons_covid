@@ -35,7 +35,7 @@ if remove_termoblock == True:
 
 # Defined variables
 ##################
-NUM_SAMPLES = 24
+NUM_SAMPLES = 94
 VOL_SAMPLE = 200
 steps = []  # Steps you want to execute
 

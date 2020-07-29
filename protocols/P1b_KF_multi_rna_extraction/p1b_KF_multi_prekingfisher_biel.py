@@ -23,9 +23,9 @@ metadata = {
 
 # Defined variables
 ##################
-NUM_SAMPLES = 94
+NUM_SAMPLES = 96
 VOL_SAMPLE = 200 # 200 or 400
-steps = [1]  # Steps you want to execut
+steps = []  # Steps you want to execut
 
 vol_pkms2 = 10 # 10 microlitros
 vol_beads = 10 # 10 microlitros
@@ -104,7 +104,7 @@ def run(ctx: protocol_api.ProtocolContext):
         run.set_pip("right")  # multi_20
         
         pkms2 = Reagent(name='PK + MS2',
-                        flow_rate_aspirate=0.5, 
+                        flow_rate_aspirate=0.2, 
                         flow_rate_dispense=3,  
                         flow_rate_aspirate_mix=4,  
                         flow_rate_dispense_mix=4, 

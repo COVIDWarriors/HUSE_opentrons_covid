@@ -75,6 +75,7 @@ def run(ctx: protocol_api.ProtocolContext):
     aw_wells = aw_slot.wells()[:NUM_SAMPLES]
     aw_wells_multi = aw_slot.rows()[0][:num_cols]
 
+
     # Magnetic Beads Pool
     beads_slot = ctx.load_labware(
         'nest_12_reservoir_15ml', 6)
