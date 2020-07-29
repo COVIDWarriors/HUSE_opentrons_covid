@@ -877,11 +877,11 @@ class ProtocolRun:
         self.mount_pip("right", type, tip_racks, capacity)
 
 
-<< << << < HEAD
-   ############################################################################
-   # STEP 22: Pause to replace
-   ############################################################################
-   if (run.next_step()):
+#<< << << < HEAD
+    ############################################################################
+    # STEP 22: Pause to replace
+    ############################################################################
+    if (run.next_step()):
         run.blink()
         ctx.pause(
             'Replace tips, add WB, add ETOH, vaciar piscina y trash. Cambiar nuevo DW SLOT 10')
@@ -892,8 +892,8 @@ class ProtocolRun:
     ############################################################################
     # STEP 23: Add elution move to temperature same tip 4 -> 7 -> 10
     ############################################################################
-== == == =
-   def mount_left_pip(self, type, tip_racks, capacity, multi=False):
+#== == == =
+    def mount_left_pip(self, type, tip_racks, capacity, multi=False):
         self.mount_pip("left", type, tip_racks, capacity)
 
     def get_current_pip(self):
@@ -906,9 +906,9 @@ class ProtocolRun:
     def reset_pip_count(self, pip):       
         pip.reset_tipracks()
         self.pips[self.selected_pip]["count"] = 0
->>>>>> > 33339d4dd5fc0163ab0a843e23c37d2f4e38024e
+#>>>>>> > 33339d4dd5fc0163ab0a843e23c37d2f4e38024e
 
-   def add_pip_count(self):
+    def add_pip_count(self):
         self.pips[self.selected_pip]["count"] + \
             self.pips[self.selected_pip]["increment_tips"]
 
