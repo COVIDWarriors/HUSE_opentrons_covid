@@ -29,11 +29,9 @@ temperature = 25  # Set temperature. It will be used if set_temp_on is set to Tr
 set_mag_on = True  # Do you want to start magnetic module?
 mag_height = 6.5  # Height needed for NEST deepwell in magnetic deck
 
-robot = None
 # While True enables wait_time of step definition. False to bypass the wait_time
 use_waits = True
 
-use_waits = True
 num_cols = math.ceil(NUM_SAMPLES/8)
 pool_area = 8.13*71.1
 diameter_screwcap = 8.1  # Diameter of the screwcap
@@ -53,7 +51,7 @@ def run(ctx: protocol_api.ProtocolContext):
     run = ProtocolRun(ctx)
 
     run.add_step(
-        description="Transfer Magnetic Beads from SLOT 3 to a DeepWellPlate on SLOT 2 and mix")  # 1
+        description="Transfer Magnetic Beads from SLOT 3 to a Deep Well Plate on SLOT 2 and mix")  # 1
     # INTERACTION 2
     run.add_step(
         description="Add samples in hood \n Replace tipracks, empty trash, set the DeepWellPlate with samples on Temperature Module SLOT 10")  # 2

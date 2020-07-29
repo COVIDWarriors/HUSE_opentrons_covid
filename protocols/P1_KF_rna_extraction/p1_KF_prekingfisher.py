@@ -214,6 +214,7 @@ def run(ctx: protocol_api.ProtocolContext):
         run.pick_up()
         for destination in wb_wells_multi:            
             for vol in wb.divide_volume(volume,150):
+                pool_area = 8.3*71.1
                 pickup_height= wb.calc_height(
                     pool_area, vol*8)
 
